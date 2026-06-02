@@ -21,5 +21,5 @@ server:
 
 jwt:
   signerKey: ${JWT_SIGNER_KEY}
-  valid-duration: 3600
-  refreshable-duration: 86400
+  access-token-duration: 3600
+  refresh-token-duration: 86400

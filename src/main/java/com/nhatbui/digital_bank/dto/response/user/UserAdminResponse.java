@@ -18,7 +18,6 @@ public class UserAdminResponse {
     private String address;
     private String status;
     private String role;
-    private Boolean emailVerified;
     private Boolean phoneVerified;
     private Boolean accountNonLocked;
     private Integer failedLoginAttempts;

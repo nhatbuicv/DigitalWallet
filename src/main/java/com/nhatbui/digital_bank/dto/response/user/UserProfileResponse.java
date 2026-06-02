@@ -1,8 +1,7 @@
 package com.nhatbui.digital_bank.dto.response.user;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.nhatbui.digital_bank.dto.ProvinceResponse;
-import com.nhatbui.digital_bank.entity.Province;
+import com.nhatbui.digital_bank.dto.response.ProvinceResponse;
 import lombok.Builder;
 import lombok.Data;
 
@@ -31,7 +30,6 @@ public class UserProfileResponse {
     private String role;
 
     // Xác thực
-    private Boolean emailVerified;
     private Boolean phoneVerified;
 
     // Thông tin bảo mật
