@@ -1,0 +1,25 @@
+spring:
+  application:
+    name: digital-bank
+
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/digital_bank
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+server:
+  port: 8080
+
+jwt:
+  signerKey: ${JWT_SIGNER_KEY}
+  access-token-duration: 3600
+  refresh-token-duration: 86400
