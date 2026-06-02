@@ -2,15 +2,12 @@ package com.nhatbui.digital_bank.service;
 
 import com.nhatbui.digital_bank.dto.request.CreateUserRequest;
 import com.nhatbui.digital_bank.dto.request.PasswordLoginRequest;
+import com.nhatbui.digital_bank.dto.request.QuickLoginRequest;
 import com.nhatbui.digital_bank.dto.response.ApiResponse;
+import com.nhatbui.digital_bank.dto.response.DeviceSessionResponse;
 import com.nhatbui.digital_bank.dto.response.auth.RegisterResponse;
-import com.nhatbui.digital_bank.dto.response.account.AccountResponse;
 import com.nhatbui.digital_bank.dto.response.auth.UserLoginResponse;
-import com.nhatbui.digital_bank.dto.response.user.UserProfileResponse;
-import com.nhatbui.digital_bank.entity.Account;
-import com.nhatbui.digital_bank.entity.Province;
-import com.nhatbui.digital_bank.entity.RefreshToken;
-import com.nhatbui.digital_bank.entity.User;
+import com.nhatbui.digital_bank.entity.*;
 import com.nhatbui.digital_bank.enums.AccountType;
 import com.nhatbui.digital_bank.enums.UserRole;
 import com.nhatbui.digital_bank.enums.UserStatus;
@@ -19,10 +16,7 @@ import com.nhatbui.digital_bank.exception.ErrorCode;
 import com.nhatbui.digital_bank.generator.CustomerIdGenerator;
 import com.nhatbui.digital_bank.mapper.AccountMapper;
 import com.nhatbui.digital_bank.mapper.UserMapper;
-import com.nhatbui.digital_bank.repository.AccountRepository;
-import com.nhatbui.digital_bank.repository.ProvinceRepository;
-import com.nhatbui.digital_bank.repository.RefreshTokenRepository;
-import com.nhatbui.digital_bank.repository.UserRepository;
+import com.nhatbui.digital_bank.repository.*;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jwt.JWTClaimsSet;
@@ -35,12 +29,14 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Date;
-import java.util.Random;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class AuthService {
+
+    private static final long LOCK_DURATION_SECONDS = 1800;
+
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final ProvinceRepository provinceRepository;
@@ -51,34 +47,173 @@ public class AuthService {
     private final AccountMapper accountMapper;
     private final RefreshTokenRepository refreshTokenRepository;
     private final LoginAttemptService loginAttemptService;
+    private final DeviceSessionRepository deviceSessionRepository;
 
     @Value("${jwt.signerKey}")
-    private String SIGNER_KEY;
+    private String signerKey;
 
     @Value("${jwt.access-token-duration}")
-    private long VALID_DURATION;
+    private long accessTokenDuration;
 
     @Value("${jwt.refresh-token-duration}")
-    private long REFRESHABLE_DURATION;
+    private long refreshTokenDuration;
 
+    
+    // Public API
     @Transactional
     public ApiResponse<RegisterResponse> registerUserWithDefaultAccount(CreateUserRequest request) {
-        if (userRepository.existsByEmail(request.getEmail())) {
+        if (userRepository.existsByEmail(request.getEmail()) || userRepository.existsByPhone(request.getPhone())) {
             throw new AppException(ErrorCode.REGISTRATION_FAILED);
         }
-
-        if (userRepository.existsByPhone(request.getPhone())) {
-            throw new AppException(ErrorCode.REGISTRATION_FAILED);
-        }
-
-        String customerId = customerIdGenerator.generateCustomerId();
 
         Province province = provinceRepository.findByCode(request.getCityCode())
                 .orElseThrow(() -> new AppException(ErrorCode.PROVINCE_NOT_FOUND));
 
+        User user = buildNewUser(request, province);
+        User savedUser = userRepository.save(user);
 
-        User user = User.builder()
-                .customerId(customerId)
+        Account defaultAccount = accountService.createDefaultAccount(savedUser);
+        Account savedAccount = accountRepository.save(defaultAccount);
+
+        RegisterResponse registerResponse = RegisterResponse.builder()
+                .user(userMapper.mapToUserProfileResponse(savedUser))
+                .account(accountMapper.mapToAccountResponse(savedAccount))
+                .build();
+
+        return ApiResponse.<RegisterResponse>builder()
+                .success(true)
+                .message("Đăng ký thành công")
+                .data(registerResponse)
+                .build();
+    }
+
+    @Transactional
+    public ApiResponse<UserLoginResponse> loginWithPassword(PasswordLoginRequest request) {
+        User user = userRepository.findByPhone(request.getPhone())
+                .orElseThrow(() -> new AppException(ErrorCode.INVALID_CREDENTIALS));
+
+        checkAccountStatus(user);
+        verifyPassword(request.getPassword(), user);
+
+        refreshTokenRepository.deleteByUserUidAndDeviceId(user.getUid(), request.getDeviceId());
+        upsertDeviceSession(user, request.getDeviceId(), request.getDeviceName());
+
+        return buildLoginResponse(user, request.getDeviceId(), request.getDeviceName());
+    }
+
+    @Transactional
+    public ApiResponse<UserLoginResponse> quickLogin(QuickLoginRequest request) {
+        DeviceSession session = deviceSessionRepository.findByDeviceId(request.getDeviceId())
+                .orElseThrow(() -> new AppException(ErrorCode.DEVICE_NOT_REGISTERED));
+
+        User user = session.getUser();
+        checkAccountStatus(user);
+        verifyPassword(request.getPassword(), user);
+
+        refreshTokenRepository.deleteByUserUidAndDeviceId(user.getUid(), request.getDeviceId());
+
+        session.setLastLoginAt(Instant.now());
+        deviceSessionRepository.save(session);
+
+
+        return buildLoginResponse(user, request.getDeviceId(), session.getDeviceName());
+    }
+
+    public ApiResponse<DeviceSessionResponse> getDeviceSession(String deviceId) {
+        DeviceSession session = deviceSessionRepository.findByDeviceId(deviceId)
+                .orElseThrow(() -> new AppException(ErrorCode.DEVICE_NOT_REGISTERED));
+
+        User user = session.getUser();
+
+        return ApiResponse.<DeviceSessionResponse>builder()
+                .success(true)
+                .data(DeviceSessionResponse.builder()
+                        .fullName(user.getFullName())
+                        .phone(user.getPhone())
+                        .quickLoginEnabled(true)
+                        .build())
+                .build();
+    }
+
+
+    // Private helpers — business logic
+    private void verifyPassword(String rawPassword, User user) {
+        if (!passwordEncoder.matches(rawPassword, user.getPassword())) {
+            loginAttemptService.recordFailedAttempt(user);
+            throw new AppException(ErrorCode.INVALID_CREDENTIALS);
+        }
+    }
+
+    private void checkAccountStatus(User user) {
+        if (!user.getAccountNonLocked()) {
+            boolean lockExpired = user.getLockTime() != null
+                    && user.getLockTime().plusSeconds(LOCK_DURATION_SECONDS).isBefore(Instant.now());
+
+            if (lockExpired) {
+                user.setAccountNonLocked(true);
+                user.setLockTime(null);
+                user.setFailedLoginAttempts(0);
+                userRepository.save(user);
+            } else {
+                throw new AppException(ErrorCode.ACCOUNT_LOCKED);
+            }
+        }
+
+        switch (user.getStatus()) {
+            case PENDING  -> throw new AppException(ErrorCode.PHONE_NOT_VERIFIED);
+            case LOCKED, INACTIVE -> throw new AppException(ErrorCode.ACCOUNT_INACTIVE);
+            default -> { /* ACTIVE — proceed */ }
+        }
+    }
+
+    private ApiResponse<UserLoginResponse> buildLoginResponse(User user, String deviceId, String deviceName) {
+        String accessToken  = generateAccessToken(user);
+        String refreshToken = generateRefreshToken(user, deviceId, deviceName);
+
+        user.setLastLogin(Instant.now());
+        user.setFailedLoginAttempts(0);
+        userRepository.save(user);
+
+        Account checkingAccount = user.getAccounts().stream()
+                .filter(acc -> acc.getAccountType() == AccountType.CHECKING)
+                .findFirst()
+                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND));
+
+        UserLoginResponse loginResponse = UserLoginResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .tokenType("Bearer")
+                .expiresIn(accessTokenDuration)
+                .customerId(user.getCustomerId())
+                .fullName(user.getFullName())
+                .phone(user.getPhone())
+                .defaultAccountNumber(checkingAccount.getAccountNumber())
+                .defaultAccountBalance(checkingAccount.getAvailableBalance())
+                .build();
+
+        return ApiResponse.<UserLoginResponse>builder()
+                .success(true)
+                .message("Đăng nhập thành công")
+                .data(loginResponse)
+                .build();
+    }
+
+    private void upsertDeviceSession(User user, String deviceId, String deviceName) {
+        DeviceSession session = deviceSessionRepository.findByDeviceId(deviceId)
+                .orElse(DeviceSession.builder()
+                        .deviceId(deviceId)
+                        .user(user)
+                        .deviceName(deviceName)
+                        .quickLoginEnabled(true)
+                        .build());
+
+        session.setLastLoginAt(Instant.now());
+        deviceSessionRepository.save(session);
+    }
+
+    private User buildNewUser(CreateUserRequest request, Province province) {
+        return User.builder()
+                .customerId(customerIdGenerator.generateCustomerId())
                 .fullName(request.getFullName())
                 .email(request.getEmail())
                 .phone(request.getPhone())
@@ -92,105 +227,12 @@ public class AuthService {
                 .failedLoginAttempts(0)
                 .accountNonLocked(true)
                 .build();
-
-        User savedUser = userRepository.save(user);
-
-        Account defaultAccount = accountService.createDefaultAccount(savedUser);
-        Account savedAccount = accountRepository.save(defaultAccount);
-
-        UserProfileResponse userResponse = userMapper.mapToUserProfileResponse(savedUser);
-        AccountResponse accountResponse = accountMapper.mapToAccountResponse(savedAccount);
-
-        RegisterResponse registerResponse = RegisterResponse.builder()
-                .user(userResponse)
-                .account(accountResponse)
-                .build();
-
-        return ApiResponse.<RegisterResponse>builder()
-                .success(true)
-                .message("Đăng ký thành công")
-                .data(registerResponse)
-                .build();
     }
 
 
-    @Transactional
-    public ApiResponse<UserLoginResponse> loginWithPassword(PasswordLoginRequest request) {
-
-        User user = userRepository.findByPhone(request.getPhone())
-                .orElseThrow(() -> new AppException(ErrorCode.INVALID_CREDENTIALS));
-
-        if (!user.getAccountNonLocked()) {
-            if (user.getLockTime() != null && user.getLockTime().plusSeconds(1800).isBefore(Instant.now())) {
-                user.setAccountNonLocked(true);
-                user.setLockTime(null);
-                user.setFailedLoginAttempts(0);
-                userRepository.save(user);
-            } else {
-                throw new AppException(ErrorCode.ACCOUNT_LOCKED);
-            }
-        }
-
-        if (user.getStatus() == UserStatus.PENDING) {
-            throw new AppException(ErrorCode.PHONE_NOT_VERIFIED);
-        }
-        if (user.getStatus() == UserStatus.LOCKED || user.getStatus() == UserStatus.INACTIVE) {
-            throw new AppException(ErrorCode.ACCOUNT_INACTIVE);
-        }
-
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            loginAttemptService.recordFailedAttempt(user);
-            throw new AppException(ErrorCode.INVALID_CREDENTIALS);
-        }
-
-
-        refreshTokenRepository.deleteAllByUserUid(user.getUid());
-
-        String accessToken  = generateAccessToken(user);
-
-        String refreshToken = generateRefreshToken(user, request.getDeviceId(), request.getDeviceName());
-
-        Account defaultAccount = user.getAccounts().stream()
-                .filter(acc -> acc.getAccountType() == AccountType.CHECKING)
-                .findFirst()
-                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND));
-
-        user.setLastLogin(Instant.now());
-        user.setFailedLoginAttempts(0); // Reset bộ đếm sai về 0
-        userRepository.save(user);
-
-        return ApiResponse.<UserLoginResponse>builder()
-                .success(true)
-                .message("Đăng nhập thành công")
-                .data(UserLoginResponse.builder()
-                        .accessToken(accessToken)
-                        .refreshToken(refreshToken)
-                        .tokenType("Bearer")
-                        .expiresIn(VALID_DURATION)
-                        .customerId(user.getCustomerId())
-                        .fullName(user.getFullName())
-                        .phone(user.getPhone())
-                        .defaultAccountNumber(defaultAccount.getAccountNumber())
-                        .defaultAccountBalance(defaultAccount.getAvailableBalance())
-                        .build())
-                .build();
-    }
-
-    private String buildAndSignToken(JWTClaimsSet claimsSet) {
-        JWSHeader jwsHeader = new JWSHeader(JWSAlgorithm.HS256);
-        JWSObject jwsObject = new JWSObject(jwsHeader, new Payload(claimsSet.toJSONObject()));
-        try {
-            jwsObject.sign(new MACSigner(SIGNER_KEY.getBytes()));
-            return jwsObject.serialize();
-        } catch (JOSEException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public String generateAccessToken(User user) {
-        JWSHeader jwsHeader = new JWSHeader(JWSAlgorithm.HS256);
-
-        JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()
+    // Private helpers — JWT
+    private String generateAccessToken(User user) {
+        JWTClaimsSet claims = new JWTClaimsSet.Builder()
                 .subject(String.valueOf(user.getUid()))
                 .claim("customerId", user.getCustomerId())
                 .claim("role", user.getRole().toString())
@@ -198,42 +240,48 @@ public class AuthService {
                 .claim("type", "access")
                 .issuer("Digital Bank")
                 .issueTime(new Date())
-                .expirationTime(Date.from(Instant.now().plusSeconds(VALID_DURATION)))
+                .expirationTime(Date.from(Instant.now().plusSeconds(accessTokenDuration)))
                 .jwtID(UUID.randomUUID().toString())
                 .build();
 
-        return buildAndSignToken(jwtClaimsSet);
+        return buildAndSignToken(claims);
     }
 
-    public String generateRefreshToken(User user, String deviceId, String deviceName) {
+    private String generateRefreshToken(User user, String deviceId, String deviceName) {
         String jti = UUID.randomUUID().toString();
+        Instant expiresAt = Instant.now().plusSeconds(refreshTokenDuration);
 
-        Instant expiryInstant = Instant.now().plusSeconds(REFRESHABLE_DURATION);
-
-        JWSHeader jwsHeader = new JWSHeader(JWSAlgorithm.HS256);
-
-        JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()
+        JWTClaimsSet claims = new JWTClaimsSet.Builder()
                 .subject(String.valueOf(user.getUid()))
                 .claim("type", "refresh")
                 .claim("token_version", user.getTokenVersion())
                 .issuer("Digital Bank")
                 .issueTime(new Date())
-                .expirationTime(Date.from(expiryInstant))
+                .expirationTime(Date.from(expiresAt))
                 .jwtID(jti)
                 .build();
 
-        RefreshToken refreshTokenEntity = RefreshToken.builder()
+        refreshTokenRepository.save(RefreshToken.builder()
                 .jti(jti)
                 .user(user)
                 .deviceId(deviceId)
                 .deviceName(deviceName)
-                .expiresAt(expiryInstant)
-                .build();
+                .expiresAt(expiresAt)
+                .build());
 
-        refreshTokenRepository.save(refreshTokenEntity);
-
-        return buildAndSignToken(jwtClaimsSet);
+        return buildAndSignToken(claims);
     }
 
-
+    private String buildAndSignToken(JWTClaimsSet claimsSet) {
+        JWSObject jwsObject = new JWSObject(
+                new JWSHeader(JWSAlgorithm.HS256),
+                new Payload(claimsSet.toJSONObject())
+        );
+        try {
+            jwsObject.sign(new MACSigner(signerKey.getBytes()));
+            return jwsObject.serialize();
+        } catch (JOSEException e) {
+            throw new RuntimeException("Failed to sign JWT", e);
+        }
+    }
 }

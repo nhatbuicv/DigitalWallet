@@ -2,7 +2,9 @@ package com.nhatbui.digital_bank.controller;
 
 import com.nhatbui.digital_bank.dto.request.CreateUserRequest;
 import com.nhatbui.digital_bank.dto.request.PasswordLoginRequest;
+import com.nhatbui.digital_bank.dto.request.QuickLoginRequest;
 import com.nhatbui.digital_bank.dto.response.ApiResponse;
+import com.nhatbui.digital_bank.dto.response.DeviceSessionResponse;
 import com.nhatbui.digital_bank.dto.response.auth.RegisterResponse;
 import com.nhatbui.digital_bank.dto.response.auth.UserLoginResponse;
 import com.nhatbui.digital_bank.service.AuthService;
@@ -35,6 +37,21 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<UserLoginResponse>> login(@Valid @RequestBody PasswordLoginRequest request) {
         ApiResponse<UserLoginResponse> response = authService.loginWithPassword(request);
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(response);
+    }
+
+    @GetMapping("/device-session/{deviceId}")
+    public ResponseEntity<ApiResponse<DeviceSessionResponse>> getDeviceSession(@PathVariable String deviceId) {
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(authService.getDeviceSession(deviceId));
+    }
+
+    @PostMapping("/quick-login")
+    public ResponseEntity<ApiResponse<UserLoginResponse>> quickLogin(@Valid @RequestBody QuickLoginRequest request) {
+        ApiResponse<UserLoginResponse> response = authService.quickLogin(request);
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(response);

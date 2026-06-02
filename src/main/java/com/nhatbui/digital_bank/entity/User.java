@@ -11,6 +11,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -38,7 +39,7 @@ public class User {
     String phone;
 
     @Column(name = "email", unique = true, nullable = false, length = 100)
-    private String email;
+    String email;
 
     @Column(nullable = false)
     String password;
@@ -89,7 +90,10 @@ public class User {
     @OneToMany(mappedBy = "user")
     List<Account> accounts;
 
-    // User.java
     @Builder.Default
     Integer tokenVersion = 0;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    List<DeviceSession> deviceSessions = new ArrayList<>();
 }
