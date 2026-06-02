@@ -1,4 +1,4 @@
-package com.nhatbui.digital_bank.dto;
+package com.nhatbui.digital_bank.dto.response;
 
 import lombok.Builder;
 import lombok.Data;

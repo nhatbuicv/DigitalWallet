@@ -63,13 +63,10 @@ public class User {
     UserRole role = UserRole.USER;
 
     @Builder.Default
-    Boolean emailVerified = false;
-
-    @Builder.Default
     Boolean phoneVerified = false;
 
     @Builder.Default
-    Integer failedLoginAttempts = 0;
+    Integer failedLoginAttempts = 0; // đăng nhập sai quá 5 lần khóa tài khoản
 
     @Builder.Default
     Boolean accountNonLocked = true;
@@ -91,4 +88,8 @@ public class User {
 
     @OneToMany(mappedBy = "user")
     List<Account> accounts;
+
+    // User.java
+    @Builder.Default
+    Integer tokenVersion = 0;
 }

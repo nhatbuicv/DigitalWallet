@@ -5,34 +5,22 @@ import com.nhatbui.digital_bank.repository.UserRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 
-@Component
+@Service
 @RequiredArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class CustomerIdGenerator {
 
-    UserRepository userRepository;
+    private final JdbcTemplate jdbcTemplate;
 
     public String generateCustomerId() {
-        Optional<User> lastUser = userRepository.findTopByOrderByUidDesc();
-
-        // Nếu chưa có account nào
-        if (lastUser.isEmpty()) {
-            return "CUS00000001";
-        }
-
-        String lastUserId = lastUser.get().getCustomerId();
-
-        // Lấy phần số
-        String numberPart = lastUserId.substring(3);
-
-        int number = Integer.parseInt(numberPart);
-
-        int nextNumber = number + 1;
-
-        return String.format("CUS%08d", nextNumber);
+        Long nextVal = jdbcTemplate.queryForObject(
+                "SELECT nextval('customer_id_seq')", Long.class
+        );
+        return String.format("CUS%08d", nextVal);
     }
 }

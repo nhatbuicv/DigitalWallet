@@ -1,8 +1,10 @@
 package com.nhatbui.digital_bank.controller;
 
 import com.nhatbui.digital_bank.dto.request.CreateUserRequest;
+import com.nhatbui.digital_bank.dto.request.PasswordLoginRequest;
 import com.nhatbui.digital_bank.dto.response.ApiResponse;
-import com.nhatbui.digital_bank.dto.response.RegisterResponse;
+import com.nhatbui.digital_bank.dto.response.auth.RegisterResponse;
+import com.nhatbui.digital_bank.dto.response.auth.UserLoginResponse;
 import com.nhatbui.digital_bank.service.AuthService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -23,20 +25,18 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/register")
-    public ResponseEntity<ApiResponse<RegisterResponse>> register(
-            @Valid @RequestBody CreateUserRequest request) {
-
-        log.info("Receive register request for email: {}", request.getEmail());
-
+    public ResponseEntity<ApiResponse<RegisterResponse>> register(@Valid @RequestBody CreateUserRequest request) {
         ApiResponse<RegisterResponse> response = authService.registerUserWithDefaultAccount(request);
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(response);
+    }
 
-        if (!response.isSuccess()) {
-            log.warn("Register failed for email: {}, reason: {}",
-                    request.getEmail(), response.getMessage());
-            return ResponseEntity.badRequest().body(response);
-        }
-
-        log.info("Register success for email: {}", request.getEmail());
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    @PostMapping("/login")
+    public ResponseEntity<ApiResponse<UserLoginResponse>> login(@Valid @RequestBody PasswordLoginRequest request) {
+        ApiResponse<UserLoginResponse> response = authService.loginWithPassword(request);
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(response);
     }
 }
