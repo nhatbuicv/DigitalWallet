@@ -1,4 +1,4 @@
-package com.nhatbui.digital_bank.service;
+package com.nhatbui.digital_bank.service.impl;
 
 import com.nhatbui.digital_bank.entity.User;
 import com.nhatbui.digital_bank.enums.UserStatus;
