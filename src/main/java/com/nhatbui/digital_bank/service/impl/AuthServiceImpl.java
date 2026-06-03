@@ -3,9 +3,11 @@ package com.nhatbui.digital_bank.service.impl;
 import com.nhatbui.digital_bank.dto.request.CreateUserRequest;
 import com.nhatbui.digital_bank.dto.request.PasswordLoginRequest;
 import com.nhatbui.digital_bank.dto.request.QuickLoginRequest;
+import com.nhatbui.digital_bank.dto.request.RefreshTokenRequest;
 import com.nhatbui.digital_bank.dto.response.ApiResponse;
 import com.nhatbui.digital_bank.dto.response.DeviceSessionResponse;
 import com.nhatbui.digital_bank.dto.response.auth.RegisterResponse;
+import com.nhatbui.digital_bank.dto.response.auth.TokenRefreshResponse;
 import com.nhatbui.digital_bank.dto.response.auth.UserLoginResponse;
 import com.nhatbui.digital_bank.entity.*;
 import com.nhatbui.digital_bank.enums.AccountType;
@@ -22,13 +24,16 @@ import com.nhatbui.digital_bank.service.AuthService;
 import com.nhatbui.digital_bank.service.LoginAttemptService;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.MACSigner;
+import com.nimbusds.jose.crypto.MACVerifier;
 import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.SignedJWT;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.text.ParseException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Date;
@@ -142,6 +147,76 @@ public class AuthServiceImpl implements AuthService {
                 .build();
     }
 
+    @Override
+    @Transactional
+    public ApiResponse<TokenRefreshResponse> refreshToken(RefreshTokenRequest request) throws ParseException, JOSEException {
+        var signedJWT = verifyToken(request.getRefreshToken(), "refresh");
+
+        String jit = signedJWT.getJWTClaimsSet().getJWTID();
+        String userId = signedJWT.getJWTClaimsSet().getSubject();
+
+        RefreshToken oldRefreshToken = refreshTokenRepository.findById(UUID.fromString(jit))
+                .orElseThrow(() -> new AppException(ErrorCode.UNAUTHENTICATED));
+
+        User user = userRepository.findById(UUID.fromString(userId))
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        refreshTokenRepository.delete(oldRefreshToken);
+
+        String accessToken = generateAccessToken(user);
+        String newRefreshToken = generateRefreshToken(user, oldRefreshToken.getDeviceId(), oldRefreshToken.getDeviceName());
+
+        return ApiResponse.<TokenRefreshResponse>builder()
+                .success(true)
+                .message("Token refreshed successfully")
+                .data(TokenRefreshResponse.builder()
+                        .accessToken(accessToken)
+                        .refreshToken(newRefreshToken)
+                        .tokenType("Bearer")
+                        .expiresIn(accessTokenDuration)
+                        .build())
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public ApiResponse<Void> logout(RefreshTokenRequest request) throws ParseException, JOSEException {
+            var signedJWT = verifyToken(request.getRefreshToken(), "refresh");
+            String jti = signedJWT.getJWTClaimsSet().getJWTID();
+            refreshTokenRepository.deleteById(UUID.fromString(jti));
+
+        return ApiResponse.<Void>builder()
+                .success(true)
+                .message("Đăng xuất thành công")
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public ApiResponse<Void> logoutAll(RefreshTokenRequest request) throws ParseException, JOSEException {
+            var signedJWT = verifyToken(request.getRefreshToken(), "refresh");
+            String userId = signedJWT.getJWTClaimsSet().getSubject();
+            refreshTokenRepository.deleteByUserUid(UUID.fromString(userId));
+
+        return ApiResponse.<Void>builder()
+                .success(true)
+                .message("Đăng xuất tất cả thiết bị thành công")
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public ApiResponse<Void> deleteDeviceSession(String deviceId) {
+        deviceSessionRepository.findByDeviceId(deviceId).ifPresent(session -> {
+            refreshTokenRepository.deleteByUserUidAndDeviceId(session.getUser().getUid(), deviceId);
+            deviceSessionRepository.delete(session);
+        });
+
+        return ApiResponse.<Void>builder()
+                .success(true)
+                .message("Xóa thiết bị thành công")
+                .build();
+    }
 
     // Private helpers — business logic
     private void verifyPassword(String rawPassword, User user) {
@@ -167,14 +242,14 @@ public class AuthServiceImpl implements AuthService {
         }
 
         switch (user.getStatus()) {
-            case PENDING  -> throw new AppException(ErrorCode.PHONE_NOT_VERIFIED);
+            case PENDING -> throw new AppException(ErrorCode.PHONE_NOT_VERIFIED);
             case LOCKED, INACTIVE -> throw new AppException(ErrorCode.ACCOUNT_INACTIVE);
             default -> { /* ACTIVE — proceed */ }
         }
     }
 
     private ApiResponse<UserLoginResponse> buildLoginResponse(User user, String deviceId, String deviceName) {
-        String accessToken  = generateAccessToken(user);
+        String accessToken = generateAccessToken(user);
         String refreshToken = generateRefreshToken(user, deviceId, deviceName);
 
         user.setLastLogin(Instant.now());
@@ -255,7 +330,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private String generateRefreshToken(User user, String deviceId, String deviceName) {
-        String jti = UUID.randomUUID().toString();
+        UUID jti = UUID.randomUUID();
         Instant expiresAt = Instant.now().plusSeconds(refreshTokenDuration);
 
         JWTClaimsSet claims = new JWTClaimsSet.Builder()
@@ -265,7 +340,7 @@ public class AuthServiceImpl implements AuthService {
                 .issuer("Digital Bank")
                 .issueTime(new Date())
                 .expirationTime(Date.from(expiresAt))
-                .jwtID(jti)
+                .jwtID(String.valueOf(jti))
                 .build();
 
         refreshTokenRepository.save(RefreshToken.builder()
@@ -280,15 +355,32 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private String buildAndSignToken(JWTClaimsSet claimsSet) {
-        JWSObject jwsObject = new JWSObject(
-                new JWSHeader(JWSAlgorithm.HS256),
-                new Payload(claimsSet.toJSONObject())
-        );
+        JWSObject jwsObject = new JWSObject(new JWSHeader(JWSAlgorithm.HS256), new Payload(claimsSet.toJSONObject()));
         try {
             jwsObject.sign(new MACSigner(signerKey.getBytes()));
             return jwsObject.serialize();
         } catch (JOSEException e) {
             throw new RuntimeException("Failed to sign JWT", e);
         }
+    }
+
+    private SignedJWT verifyToken(String token , String expectedType) throws JOSEException, ParseException {
+        JWSVerifier jwsVerifier = new MACVerifier(signerKey.getBytes());
+        SignedJWT signedJWT = SignedJWT.parse(token);
+
+        var verified = signedJWT.verify(jwsVerifier);
+
+        Date expiryTime = signedJWT.getJWTClaimsSet().getExpirationTime();
+
+        if (!verified || expiryTime.before(new Date())) {
+            throw new RuntimeException("Expired or invalid JWT token");
+        }
+
+        String type = signedJWT.getJWTClaimsSet().getStringClaim("type");
+        if (!expectedType.equals(type)) {
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
+        }
+
+        return signedJWT;
     }
 }

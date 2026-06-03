@@ -16,7 +16,7 @@ import java.util.UUID;
 @AllArgsConstructor
 public class RefreshToken {
     @Id
-    String jti;
+    UUID jti;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_uid", nullable = false)

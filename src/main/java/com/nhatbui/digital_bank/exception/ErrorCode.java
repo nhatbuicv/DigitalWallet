@@ -25,7 +25,7 @@ public enum ErrorCode {
     CITIZEN_ID_ALREADY_EXISTS(1023, "Citizen ID is already registered", HttpStatus.BAD_REQUEST),
     USER_NOT_FOUND(1024, "User profile not found", HttpStatus.NOT_FOUND),
     ACCOUNT_NOT_FOUND(1025, "Account not found", HttpStatus.NOT_FOUND),
-    DEVICE_NOT_REGISTERED(1025, "Account not found", HttpStatus.NOT_FOUND),
+    DEVICE_NOT_REGISTERED(1026, "Device is not registered", HttpStatus.NOT_FOUND),
 
 
     // ACCOUNT BANKING STATUS (1050 - 1099)
