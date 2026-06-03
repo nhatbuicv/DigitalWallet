@@ -30,7 +30,7 @@
 
 
 
-1. **Khởi động PostgreSQL:**
+1. **Khởi động PostgreSQL & Redis:**
    ```bash
    docker compose up -d
    ```

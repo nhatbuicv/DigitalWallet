@@ -16,6 +16,18 @@ spring:
       hibernate:
         format_sql: true
 
+  data:
+    redis:
+      port: 6379
+      host: localhost
+
+  profiles:
+    active: dev
+
+esms:
+  api-key: ${ESMS_API_KEY}
+  secret-key: ${ESMS_SECRET_KEY}
+
 server:
   port: 8080
 
