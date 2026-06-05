@@ -373,7 +373,7 @@ public class AuthServiceImpl implements AuthService {
         Date expiryTime = signedJWT.getJWTClaimsSet().getExpirationTime();
 
         if (!verified || expiryTime.before(new Date())) {
-            throw new RuntimeException("Expired or invalid JWT token");
+            throw new AppException(ErrorCode.TOKEN_EXPIRED);
         }
 
         String type = signedJWT.getJWTClaimsSet().getStringClaim("type");

@@ -27,15 +27,27 @@ public enum ErrorCode {
     ACCOUNT_NOT_FOUND(1025, "Account not found", HttpStatus.NOT_FOUND),
     DEVICE_NOT_REGISTERED(1026, "Device is not registered", HttpStatus.NOT_FOUND),
 
-
     // ACCOUNT BANKING STATUS (1050 - 1099)
-    ACCOUNT_INACTIVE(1050, "Your main user account is inactive", HttpStatus.BAD_REQUEST),
-    ACCOUNT_LOCKED(1051, "Your account has been locked due to multiple failed login attempts", HttpStatus.LOCKED), // Dùng HttpStatus.LOCKED (423) chuẩn hơn
+    ACCOUNT_INACTIVE(1050, "Your bank account is inactive", HttpStatus.BAD_REQUEST),
+    ACCOUNT_LOCKED(1051, "Your account has been locked due to multiple failed login attempts", HttpStatus.LOCKED),
     PHONE_NOT_VERIFIED(1052, "Your phone number has not been verified via OTP", HttpStatus.FORBIDDEN),
 
-    // LOCATION / REGION MODULE
+    // Account status change errors (1053 - 1069)
+    CANNOT_FREEZE_LAST_ACTIVE_ACCOUNT(1053, "Cannot freeze the last active account. You must have at least one active account", HttpStatus.BAD_REQUEST),
+    ACCOUNT_ALREADY_CLOSED(1054, "This account has already been closed", HttpStatus.BAD_REQUEST),
+    ACCOUNT_CLOSED(1055, "Cannot perform operation on a closed account", HttpStatus.BAD_REQUEST),
+    ACCOUNT_STATUS_NOT_CHANGEABLE(1056, "This account status cannot be changed by user", HttpStatus.FORBIDDEN),
+    INVALID_ACCOUNT_STATUS(1057, "Invalid account status for this operation", HttpStatus.BAD_REQUEST),
+    ACCOUNT_NOT_FROZEN(1058, "Cannot activate an account that is not frozen", HttpStatus.BAD_REQUEST),
+    ACCOUNT_NOT_ACTIVE(1059, "Cannot freeze an account that is not active", HttpStatus.BAD_REQUEST),
+    INVALID_ACTION(1060, "Invalid action specified", HttpStatus.BAD_REQUEST),
+    INVALID_ACCOUNT_NUMBER(1061, "Invalid account number format", HttpStatus.BAD_REQUEST),
+    ACCOUNT_SUSPENDED(1062, "Account has been suspended. Please contact support", HttpStatus.FORBIDDEN),
+
+    // LOCATION / REGION MODULE (1100 - 1199)
     PROVINCE_NOT_FOUND(1101, "Province not found", HttpStatus.BAD_REQUEST)
     ;
+
     private final int code;
     private final String message;
     private final HttpStatusCode statusCode;
