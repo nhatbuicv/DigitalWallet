@@ -11,7 +11,7 @@
     </parent>
 
     <groupId>com.nhatbui</groupId>
-    <artifactId>digital-bank</artifactId>
+    <artifactId>Core_Banking_Systems</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>Digital Bank Application</name>
     <description>Banking system built with Spring Boot</description>
@@ -138,6 +138,11 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
         </dependency>
 
     </dependencies>

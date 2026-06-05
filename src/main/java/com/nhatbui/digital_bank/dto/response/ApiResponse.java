@@ -16,5 +16,4 @@ public class ApiResponse<T> {
     boolean success;
     String message;
     T data;
-    String nextStep;
 }
