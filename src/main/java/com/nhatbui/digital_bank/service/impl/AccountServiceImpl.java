@@ -72,8 +72,8 @@ public class AccountServiceImpl implements AccountService {
         List<AccountSummaryResponse> data = accountMapper.mapToAccountSummaryResponse(accounts);
 
         return ApiResponse.<List<AccountSummaryResponse>>builder()
-                .success(true)
                 .message("Thành công")
+                .success(true)
                 .data(data)
                 .build();
     }
@@ -86,8 +86,8 @@ public class AccountServiceImpl implements AccountService {
         AccountResponse data = accountMapper.mapToAccountResponse(account);
 
         return ApiResponse.<AccountResponse>builder()
-                .success(true)
                 .message("Thành công")
+                .success(true)
                 .data(data)
                 .build();
     }
@@ -121,8 +121,8 @@ public class AccountServiceImpl implements AccountService {
         AccountResponse data = accountMapper.mapToAccountResponse(account);
 
         return ApiResponse.<AccountResponse>builder()
-                .success(true)
                 .message("Tạo tài khoản thành công")
+                .success(true)
                 .data(data)
                 .build();
     }
@@ -173,8 +173,8 @@ public class AccountServiceImpl implements AccountService {
         accountRepository.save(account);
 
         return ApiResponse.<Void>builder()
-                .success(true)
                 .message(newStatus == AccountStatus.ACTIVE ? "Kích hoạt tài khoản thành công" : "Đóng băng tài khoản thành công")
+                .success(true)
                 .build();
     }
 
@@ -200,8 +200,8 @@ public class AccountServiceImpl implements AccountService {
         BalanceResponse data = accountMapper.mapToBalanceResponse(account);
 
         return ApiResponse.<BalanceResponse>builder()
-                .success(true)
                 .message("Lấy số dư thành công")
+                .success(true)
                 .data(data)
                 .build();
     }

@@ -30,4 +30,8 @@ public interface  AuthService {
 
     ApiResponse<Void> deleteDeviceSession(String deviceId);
 
+    ApiResponse<Void> requestPasswordReset(String email, String ipAddress);
+
+    ApiResponse<Void> resetPassword(String rawToken, String newPassword);
+
 }

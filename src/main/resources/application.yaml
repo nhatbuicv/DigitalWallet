@@ -24,6 +24,18 @@ spring:
   profiles:
     active: dev
 
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
 esms:
   api-key: ${ESMS_API_KEY}
   secret-key: ${ESMS_SECRET_KEY}
@@ -35,3 +47,4 @@ jwt:
   signerKey: ${JWT_SIGNER_KEY}
   access-token-duration: 3600
   refresh-token-duration: 86400
+

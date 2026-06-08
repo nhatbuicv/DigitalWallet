@@ -28,7 +28,6 @@ public class OtpController {
         System.out.println("OTP = " + otp);
 
         return ApiResponse.<Void>builder()
-                .success(true)
                 .message("OTP sent successfully")
                 .build();
     }
@@ -45,7 +44,6 @@ public class OtpController {
         otpService.activateUser(request.getPhone());
 
         return ApiResponse.<Void>builder()
-                .success(true)
                 .message("OTP verified successfully")
                 .build();
     }
