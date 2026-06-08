@@ -37,6 +37,7 @@ import java.text.ParseException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -56,6 +57,9 @@ public class AuthServiceImpl implements AuthService {
     private final LoginAttemptService loginAttemptService;
     private final DeviceSessionRepository deviceSessionRepository;
     private final AccountServiceImpl accountServiceImpl;
+    private final RateLimitServiceImpl rateLimitServiceImpl;
+    private final PassWordResetTokenRepository passWordResetTokenRepository;
+    private final EmailServiceImpl emailServiceImpl;
 
     @Value("${jwt.signerKey}")
     private String signerKey;
@@ -90,8 +94,8 @@ public class AuthServiceImpl implements AuthService {
                 .build();
 
         return ApiResponse.<RegisterResponse>builder()
-                .success(true)
                 .message("Đăng ký thành công")
+                .success(true)
                 .data(registerResponse)
                 .build();
     }
@@ -167,8 +171,8 @@ public class AuthServiceImpl implements AuthService {
         String newRefreshToken = generateRefreshToken(user, oldRefreshToken.getDeviceId(), oldRefreshToken.getDeviceName());
 
         return ApiResponse.<TokenRefreshResponse>builder()
-                .success(true)
                 .message("Token refreshed successfully")
+                .success(true)
                 .data(TokenRefreshResponse.builder()
                         .accessToken(accessToken)
                         .refreshToken(newRefreshToken)
@@ -186,8 +190,8 @@ public class AuthServiceImpl implements AuthService {
             refreshTokenRepository.deleteById(UUID.fromString(jti));
 
         return ApiResponse.<Void>builder()
-                .success(true)
                 .message("Đăng xuất thành công")
+                .success(true)
                 .build();
     }
 
@@ -199,8 +203,8 @@ public class AuthServiceImpl implements AuthService {
             refreshTokenRepository.deleteByUserUid(UUID.fromString(userId));
 
         return ApiResponse.<Void>builder()
-                .success(true)
                 .message("Đăng xuất tất cả thiết bị thành công")
+                .success(true)
                 .build();
     }
 
@@ -213,10 +217,70 @@ public class AuthServiceImpl implements AuthService {
         });
 
         return ApiResponse.<Void>builder()
-                .success(true)
                 .message("Xóa thiết bị thành công")
+                .success(true)
                 .build();
     }
+
+    @Override
+    public ApiResponse<Void> requestPasswordReset(String email, String ipAddress) {
+        rateLimitServiceImpl.checkResetLimit(ipAddress);
+
+        userRepository.findByEmail(email).ifPresent(user -> {
+            passWordResetTokenRepository.deleteByUserUid(user);
+
+            String token = UUID.randomUUID().toString();
+
+            String tokenHash = passwordEncoder.encode(token);
+
+            PasswordResetToken passwordResetToken = PasswordResetToken.builder()
+                    .tokenHash(tokenHash)
+                    .userUid(user)
+                    .expiresAt(Instant.now().plusSeconds(900))
+                    .build();
+
+            passWordResetTokenRepository.save(passwordResetToken);
+
+            emailServiceImpl.sendLinkResetPassword(email,token);
+        });
+
+        return ApiResponse.<Void>builder()
+                .message("Vui lòng kiểm tra gmail để đổi mật khẩu !")
+                .success(true)
+                .build();
+    }
+
+    @Override
+    public ApiResponse<Void> resetPassword(String rawToken, String newPassword) {
+        List<PasswordResetToken> passwordResetTokens = passWordResetTokenRepository.findByExpiresAtAfter(Instant.now());
+
+        PasswordResetToken passwordResetToken = passwordResetTokens.stream()
+                .filter(passwordResetToken1 -> passwordEncoder.matches(rawToken,passwordResetToken1.getTokenHash()))
+                .findFirst()
+                .orElseThrow(() -> new AppException(ErrorCode.INVALID_RESET_TOKEN));
+
+        if(passwordResetToken.isUsed()){
+            throw new AppException(ErrorCode.TOKEN_ALREADY_USED);
+        }
+
+        User user = userRepository.findByUid(passwordResetToken.getUserUid().getUid())
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setTokenVersion(user.getTokenVersion() + 1);
+        userRepository.save(user);
+
+        passwordResetToken.setUsed(true);
+        passwordResetToken.setUsedAt(Instant.now());
+        passWordResetTokenRepository.save(passwordResetToken);
+
+        return ApiResponse.<Void>builder()
+                .message("Đổi mật khẩu thành công")
+                .success(true)
+                .build();
+    }
+
+
 
     // Private helpers — business logic
     private void verifyPassword(String rawPassword, User user) {
@@ -274,8 +338,8 @@ public class AuthServiceImpl implements AuthService {
                 .build();
 
         return ApiResponse.<UserLoginResponse>builder()
-                .success(true)
                 .message("Đăng nhập thành công")
+                .success(true)
                 .data(loginResponse)
                 .build();
     }

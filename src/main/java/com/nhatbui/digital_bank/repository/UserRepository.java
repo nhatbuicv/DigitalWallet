@@ -7,9 +7,11 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface UserRepository extends JpaRepository<User, UUID> {
-    Optional<User> findTopByOrderByUidDesc();
+    Optional<User> findByUid(UUID uid);
 
     Optional<User> findByPhone(String phone);
+
+    Optional<User> findByEmail(String email);
 
     boolean existsByPhone(String phone);
 

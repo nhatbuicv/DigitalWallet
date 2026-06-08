@@ -8,8 +8,11 @@ import org.springframework.http.HttpStatusCode;
 public enum ErrorCode {
     // SYSTEM / COMMON ERRORS (9000 - 9999)
     UNCATEGORIZED_EXCEPTION(9999, "Uncategorized system error", HttpStatus.INTERNAL_SERVER_ERROR),
+    INTERNAL_ERROR(9000, "Internal server error", HttpStatus.INTERNAL_SERVER_ERROR),
     INVALID_KEY(9001, "Uncategorized error key defined", HttpStatus.BAD_REQUEST),
     INVALID_REQUEST_BODY(9002, "Invalid request body or missing fields", HttpStatus.BAD_REQUEST),
+    RATE_LIMIT_EXCEEDED(9003, "Too many requests. Please try again later", HttpStatus.TOO_MANY_REQUESTS),
+
 
     // SECURITY & AUTH MODULE (1001 - 1019)
     UNAUTHENTICATED(1001, "Unauthenticated. Please log in again", HttpStatus.UNAUTHORIZED),
@@ -17,6 +20,9 @@ public enum ErrorCode {
     INVALID_CREDENTIALS(1003, "Invalid phone number or password", HttpStatus.BAD_REQUEST),
     TOKEN_EXPIRED(1004, "Session has expired. Please refresh your token", HttpStatus.UNAUTHORIZED),
     INVALID_TOKEN(1005, "Invalid token provider", HttpStatus.UNAUTHORIZED),
+    REFRESH_TOKEN_NOT_FOUND(1006, "Refresh token not found or already revoked", HttpStatus.UNAUTHORIZED),
+    INVALID_RESET_TOKEN(1007, "Invalid or expired password reset token", HttpStatus.BAD_REQUEST),
+    TOKEN_ALREADY_USED(1008, "This reset token has already been used", HttpStatus.BAD_REQUEST),
 
     // USER MODULE - REGISTRATION & ACCOUNT STATUS (1020 - 1049)
     REGISTRATION_FAILED(1020, "Registration failed. Please check your information or contact support", HttpStatus.CONFLICT),

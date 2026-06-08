@@ -1,9 +1,6 @@
 package com.nhatbui.digital_bank.controller;
 
-import com.nhatbui.digital_bank.dto.request.CreateUserRequest;
-import com.nhatbui.digital_bank.dto.request.PasswordLoginRequest;
-import com.nhatbui.digital_bank.dto.request.QuickLoginRequest;
-import com.nhatbui.digital_bank.dto.request.RefreshTokenRequest;
+import com.nhatbui.digital_bank.dto.request.*;
 import com.nhatbui.digital_bank.dto.response.ApiResponse;
 import com.nhatbui.digital_bank.dto.response.DeviceSessionResponse;
 import com.nhatbui.digital_bank.dto.response.auth.RegisterResponse;
@@ -12,6 +9,7 @@ import com.nhatbui.digital_bank.dto.response.auth.UserLoginResponse;
 import com.nhatbui.digital_bank.service.AuthService;
 import com.nimbusds.jose.JOSEException;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -90,5 +88,32 @@ public class AuthController {
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(response);
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ApiResponse<Void>> forgotPassword(@RequestBody @Valid ForgotPasswordRequest request, HttpServletRequest httpRequest) {
+        ApiResponse<Void> response = authService.requestPasswordReset(request.getEmail(), getClientIp(httpRequest));
+        return ResponseEntity
+                .status(HttpStatus.ACCEPTED)
+                .body(response);
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<ApiResponse<Void>> resetPassword(@RequestBody @Valid ResetPasswordRequest request) {
+        ApiResponse<Void> response = authService.resetPassword(request.getToken(), request.getNewPassword());
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(response);
+    }
+
+    private String getClientIp(HttpServletRequest request) {
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip == null || ip.isBlank() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("X-Real-IP");
+        }
+        if (ip == null || ip.isBlank() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getRemoteAddr();
+        }
+        return ip.contains(",") ? ip.split(",")[0].trim() : ip;
     }
 }
