@@ -49,6 +49,8 @@ public enum ErrorCode {
     INVALID_ACTION(1060, "Invalid action specified", HttpStatus.BAD_REQUEST),
     INVALID_ACCOUNT_NUMBER(1061, "Invalid account number format", HttpStatus.BAD_REQUEST),
     ACCOUNT_SUSPENDED(1062, "Account has been suspended. Please contact support", HttpStatus.FORBIDDEN),
+    INSUFFICIENT_BALANCE(4010, "Insufficient balance", HttpStatus.BAD_REQUEST),
+    TRANSFER_SAME_ACCOUNT(4011, "Cannot transfer to the same account", HttpStatus.BAD_REQUEST),
 
     // LOCATION / REGION MODULE (1100 - 1199)
     PROVINCE_NOT_FOUND(1101, "Province not found", HttpStatus.BAD_REQUEST)
