@@ -1,9 +1,9 @@
 services:
   postgres:
     image: postgres:14.23
-    container_name: digital-bank-postgres
+    container_name: postgres
     environment:
-      POSTGRES_DB: digital_bank
+      POSTGRES_DB: digital_wallet
       POSTGRES_USER: ${DB_USERNAME}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
@@ -13,7 +13,7 @@ services:
 
   redis:
     image: redis:7
-    container_name: digital-bank-redis
+    container_name: redis
     ports:
       - "6379:6379"
     volumes:

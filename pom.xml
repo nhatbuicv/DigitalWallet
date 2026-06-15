@@ -11,7 +11,7 @@
     </parent>
 
     <groupId>com.nhatbui</groupId>
-    <artifactId>Core_Banking_Systems</artifactId>
+    <artifactId>Digital_Wallet</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>Digital Bank Application</name>
     <description>Banking system built with Spring Boot</description>

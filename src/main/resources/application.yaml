@@ -1,10 +1,10 @@
 spring:
   application:
-    name: digital-bank
+    name: digital-wallet
 
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://localhost:5432/digital_bank
+    url: jdbc:postgresql://localhost:5432/digital_wallet
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
 
@@ -35,6 +35,12 @@ spring:
           auth: true
           starttls:
             enable: true
+
+  sql:
+    init:
+      mode: always
+      platform: postgresql
+      defer-datasource-initialization: true
 
 esms:
   api-key: ${ESMS_API_KEY}
