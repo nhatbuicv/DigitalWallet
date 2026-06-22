@@ -25,7 +25,7 @@ public class SystemWalletInitializer implements ApplicationRunner {
                     .walletName("System Wallet")
                     .walletType(WalletType.SYSTEM)
                     .status(WalletStatus.ACTIVE)
-                    .balance(BigDecimal.ZERO)
+                    .balance(0L)
                     .build();
             walletRepository.save(systemWallet);
         }
