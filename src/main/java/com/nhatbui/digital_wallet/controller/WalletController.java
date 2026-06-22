@@ -4,8 +4,9 @@ import com.nhatbui.digital_wallet.config.SecurityUtils;
 import com.nhatbui.digital_wallet.dto.request.CreateWalletRequest;
 import com.nhatbui.digital_wallet.dto.response.ApiResponse;
 import com.nhatbui.digital_wallet.dto.response.BalanceResponse;
-import com.nhatbui.digital_wallet.dto.response.account.WalletResponse;
-import com.nhatbui.digital_wallet.dto.response.account.WalletSummaryResponse;
+
+import com.nhatbui.digital_wallet.dto.response.wallet.WalletResponse;
+import com.nhatbui.digital_wallet.dto.response.wallet.WalletSummaryResponse;
 import com.nhatbui.digital_wallet.enums.WalletStatus;
 import com.nhatbui.digital_wallet.service.WalletService;
 import jakarta.validation.Valid;
@@ -18,7 +19,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/accounts")
+@RequestMapping("/wallets")
 @RequiredArgsConstructor
 public class WalletController {
 
@@ -26,46 +27,46 @@ public class WalletController {
     private final SecurityUtils securityUtils;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<WalletSummaryResponse>>> getMyAccounts() {
+    public ResponseEntity<ApiResponse<List<WalletSummaryResponse>>> getMyWallets() {
         UUID currentUserId = securityUtils.getCurrentUser().getUid();
         return ResponseEntity
                 .status(HttpStatus.OK)
-                .body(walletService.getAccountsByUserUid(currentUserId));
+                .body(walletService.getWalletsByUserUid(currentUserId));
     }
 
-    @GetMapping("/{accountNumber}/detail")
-    public ResponseEntity<ApiResponse<WalletResponse>> getAccountByAccountNumber(@PathVariable String accountNumber) {
+    @GetMapping("/{walletNumber}/detail")
+    public ResponseEntity<ApiResponse<WalletResponse>> getWalletByWalletNumber(@PathVariable String walletNumber) {
         UUID currentUserUid = securityUtils.getCurrentUser().getUid();
         return ResponseEntity
                 .status(HttpStatus.OK)
-                .body(walletService.getAccountByAccountNumber(accountNumber, currentUserUid));
+                .body(walletService.getWalletByWalletNumber(walletNumber, currentUserUid));
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<WalletResponse>> createAccount(@Valid @RequestBody CreateWalletRequest request) {
+    public ResponseEntity<ApiResponse<WalletResponse>> createWallet(@Valid @RequestBody CreateWalletRequest request) {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(walletService.createAccount(request));
+                .body(walletService.createWallet(request));
     }
 
-    @PatchMapping("/{accountId}/activate")
-    public ResponseEntity<ApiResponse<Void>> activateAccount(@PathVariable UUID accountId) {
+    @PatchMapping("/{walletId}/activate")
+    public ResponseEntity<ApiResponse<Void>> activateWallet(@PathVariable UUID walletId) {
         return ResponseEntity
                 .status(HttpStatus.OK)
-                .body(walletService.changeAccountStatus(accountId, WalletStatus.ACTIVE));
+                .body(walletService.changeWalletStatus(walletId, WalletStatus.ACTIVE));
     }
 
-    @PatchMapping("/{accountId}/freeze")
-    public ResponseEntity<ApiResponse<Void>> freezeAccount(@PathVariable UUID accountId) {
+    @PatchMapping("/{walletId}/freeze")
+    public ResponseEntity<ApiResponse<Void>> freezeWallet(@PathVariable UUID walletId) {
         return ResponseEntity
                 .status(HttpStatus.OK)
-                .body(walletService.changeAccountStatus(accountId, WalletStatus.FROZEN));
+                .body(walletService.changeWalletStatus(walletId, WalletStatus.FROZEN));
     }
 
-    @GetMapping("/{accountNumber}/balance")
-    public ResponseEntity<ApiResponse<BalanceResponse>> getBalance(@PathVariable String accountNumber) {
+    @GetMapping("/{walletNumber}/balance")
+    public ResponseEntity<ApiResponse<BalanceResponse>> getBalance(@PathVariable String walletNumber) {
         return ResponseEntity
                 .status(HttpStatus.OK)
-                .body(walletService.getBalance(accountNumber));
+                .body(walletService.getBalance(walletNumber));
     }
 }

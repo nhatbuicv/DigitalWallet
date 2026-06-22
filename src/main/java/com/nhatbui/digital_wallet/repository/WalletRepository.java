@@ -13,15 +13,21 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface WalletRepository extends JpaRepository<Wallet, UUID> {
-    Optional<Wallet> findByAccountNumberAndUserUid(String accountNumber, UUID user_uid);
+    Optional<Wallet> findByWalletNumberAndUserUid(@Param("walletNumber") String walletNumber, @Param("userUid") UUID userUid);
 
     List<Wallet> findAllByUserUid(UUID uid);
 
     long countByUserUidAndStatus(UUID user_uid , WalletStatus status);
 
-    Optional<Wallet> findByAccountNumber(String accountNumber);
+    Optional<Wallet> findByWalletNumber(String walletNumber);
+
+    Boolean existsByWalletNumber(String walletNumber);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT a FROM Wallet a WHERE a.uid = :uid")
     Optional<Wallet> findByUidWithLock(@Param("uid") UUID uid);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT w FROM Wallet w WHERE w.walletNumber = :walletNumber")
+    Optional<Wallet> findByWalletNumberWithLock(@Param("walletNumber") String walletNumber);
 }

@@ -70,7 +70,7 @@ public class User {
     Integer failedLoginAttempts = 0; // đăng nhập sai quá 5 lần khóa tài khoản
 
     @Builder.Default
-    Boolean accountNonLocked = true;
+    Boolean walletNonLocked = true;
 
     Instant lockTime;
 

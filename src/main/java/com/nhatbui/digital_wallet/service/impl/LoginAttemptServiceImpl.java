@@ -22,7 +22,7 @@ public class LoginAttemptServiceImpl implements LoginAttemptService {
         user.setFailedLoginAttempts(attempts);
 
         if (attempts >= 5) {
-            user.setAccountNonLocked(false);
+            user.setWalletNonLocked(false);
             user.setLockTime(Instant.now());
         }
 

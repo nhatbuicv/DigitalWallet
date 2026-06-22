@@ -9,7 +9,6 @@ import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -28,14 +27,14 @@ public class Wallet {
     UUID uid;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_uid", nullable = false)
+    @JoinColumn(name = "user_uid", nullable = true)
     User user;
 
     @Column(unique = true, nullable = false, length = 12)
-    String accountNumber;
+    String walletNumber;
 
     @Column(nullable = false, length = 100)
-    String accountName;
+    String walletName;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -48,14 +47,14 @@ public class Wallet {
 
     @Column(nullable = false)
     @Builder.Default
-    BigDecimal balance = BigDecimal.ZERO;
+    Long balance = 0L;
 
     @Column(nullable = false)
     @Builder.Default
-    BigDecimal availableBalance = BigDecimal.ZERO;
+    Long availableBalance = 0L;
 
     @Builder.Default
-    BigDecimal blockedBalance = BigDecimal.ZERO;
+    Long blockedBalance = 0L;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -63,17 +62,17 @@ public class Wallet {
     WalletStatus status = WalletStatus.ACTIVE;
 
     @Builder.Default
-    BigDecimal interestRate = BigDecimal.ZERO;
+    Long interestRate = 0L;
 
     @Builder.Default
-    BigDecimal overdraftLimit = BigDecimal.ZERO;
+    Long overdraftLimit = 0L;
 
     @Builder.Default
-    BigDecimal minimumBalance = BigDecimal.ZERO;
+    Long minimumBalance = 0L;
 
-    BigDecimal dailyLimit;
+    Long dailyLimit;
 
-    BigDecimal monthlyLimit;
+    Long monthlyLimit;
 
     @Column(length = 10)
     String branchCode;

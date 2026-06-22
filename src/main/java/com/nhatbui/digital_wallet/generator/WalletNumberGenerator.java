@@ -18,7 +18,7 @@ public class WalletNumberGenerator {
     private static final int DEFAULT_BRANCH = 99;
 
     // Tài khoản mặc định
-    private static final WalletType DEFAULT_ACCOUNT_TYPE = WalletType.CHECKING;
+    private static final WalletType DEFAULT_WALLET_TYPE = WalletType.CHECKING;
 
     @PersistenceContext
     EntityManager entityManager;
@@ -27,7 +27,7 @@ public class WalletNumberGenerator {
 
         int actualBranch = branchCode == null ? DEFAULT_BRANCH : branchCode;
 
-        WalletType actualType = walletType == null ? DEFAULT_ACCOUNT_TYPE : walletType;
+        WalletType actualType = walletType == null ? DEFAULT_WALLET_TYPE : walletType;
 
         String bankPart   = String.format("%03d", BANK_ID);
         String branchPart = buildBranchPart(actualBranch, actualType);
@@ -47,7 +47,7 @@ public class WalletNumberGenerator {
 
         Long serial = ((Number) entityManager
                 .createNativeQuery(
-                        "SELECT nextval('account_serial_seq')")
+                        "SELECT nextval('wallet_serial_seq')")
                 .getSingleResult())
                 .longValue();
 

@@ -1,11 +1,10 @@
-package com.nhatbui.digital_wallet.dto.response.account;
+package com.nhatbui.digital_wallet.dto.response.wallet;
 
 import com.nhatbui.digital_wallet.enums.WalletStatus;
 import com.nhatbui.digital_wallet.enums.WalletType;
 import com.nhatbui.digital_wallet.enums.CurrencyCode;
 import lombok.Builder;
 import lombok.Data;
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -13,21 +12,21 @@ import java.util.UUID;
 @Builder
 public class WalletResponse {
     private UUID uid;
-    private String accountNumber;
-    private String accountName;
+    private String walletNumber;
+    private String walletName;
     private WalletType walletType;
 
     private CurrencyCode currency;
-    private BigDecimal balance;
-    private BigDecimal availableBalance;
-    private BigDecimal blockedBalance;
+    private Long balance;
+    private Long availableBalance;
+    private Long blockedBalance;
 
     private WalletStatus status;
     private String branchCode;
     private String branchName;
 
-    private BigDecimal dailyLimit;
-    private BigDecimal monthlyLimit;
+    private Long dailyLimit;
+    private Long monthlyLimit;
 
     private Instant openedAt;
     private Instant createdAt;

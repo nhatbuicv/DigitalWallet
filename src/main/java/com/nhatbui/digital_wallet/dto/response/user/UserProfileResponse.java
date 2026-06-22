@@ -33,7 +33,7 @@ public class UserProfileResponse {
     private Boolean phoneVerified;
 
     // Thông tin bảo mật
-    private Boolean accountNonLocked;
+    private Boolean walletNonLocked;
     private Integer failedLoginAttempts;
 
     private Instant lastLogin;

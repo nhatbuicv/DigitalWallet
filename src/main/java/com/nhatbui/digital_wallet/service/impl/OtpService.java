@@ -49,7 +49,7 @@ public class OtpService {
         user.setPhoneVerified(true);
         user.setStatus(UserStatus.ACTIVE);
         user.setFailedLoginAttempts(0);
-        user.setAccountNonLocked(true);
+        user.setWalletNonLocked(true);
 
         userRepository.save(user);
     }

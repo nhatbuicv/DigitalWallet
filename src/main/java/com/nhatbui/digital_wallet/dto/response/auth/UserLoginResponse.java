@@ -3,7 +3,6 @@ package com.nhatbui.digital_wallet.dto.response.auth;
 import lombok.Builder;
 import lombok.Data;
 
-import java.math.BigDecimal;
 
 @Data
 @Builder
@@ -19,7 +18,7 @@ public class UserLoginResponse {
     private String fullName;
     private String phone;
 
-    // Default account
-    private String defaultAccountNumber;
-    private BigDecimal defaultAccountBalance;
+    // Default wallet
+    private String defaultWalletNumber;
+    private Long defaultWalletBalance;
 }

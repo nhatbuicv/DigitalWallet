@@ -10,7 +10,8 @@ public enum WalletType {
     FOREIGN(4, "Tài khoản ngoại tệ"),
     PAYROLL(5, "Tài khoản trả lương"),
     INVESTMENT(6, "Tài khoản đầu tư"),
-    JOINT(7, "Tài khoản đồng sở hữu");
+    JOINT(7, "Tài khoản đồng sở hữu"),
+    SYSTEM(8,"Tài khoản hệ thống");
 
     private final int code;
     private final String name;

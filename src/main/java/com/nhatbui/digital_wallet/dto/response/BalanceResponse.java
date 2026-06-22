@@ -4,19 +4,18 @@ import com.nhatbui.digital_wallet.enums.CurrencyCode;
 import lombok.Builder;
 import lombok.Data;
 
-import java.math.BigDecimal;
 
 @Data
 @Builder
 public class BalanceResponse {
 
-    private String accountNumber;
+    private String walletNumber;
 
     private CurrencyCode currency;
 
-    private BigDecimal balance;
+    private Long balance;
 
-    private BigDecimal availableBalance;
+    private Long availableBalance;
 
-    private BigDecimal blockedBalance;
+    private Long blockedBalance;
 }
