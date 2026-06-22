@@ -3,7 +3,6 @@ package com.nhatbui.digital_wallet.dto.request;
 import jakarta.validation.constraints.*;
 import lombok.*;
 
-import java.math.BigDecimal;
 
 @Getter
 @Setter
@@ -12,16 +11,16 @@ import java.math.BigDecimal;
 @Builder
 public class TransferRequest {
 
-    @NotBlank(message = "From account is required")
-    private String fromAccountNumber;
+    @NotBlank(message = "From Wallet is required")
+    private String fromWalletNumber;
 
-    @NotBlank(message = "To account is required")
-    private String toAccountNumber;
+    @NotBlank(message = "To Wallet is required")
+    private String toWalletNumber;
 
     @NotNull(message = "Amount is required")
     @DecimalMin(value = "1000", message = "Minimum transfer amount is 1,000")
     @Digits(integer = 15, fraction = 4, message = "Invalid amount format")
-    private BigDecimal amount;
+    private Long amount;
 
     @NotNull
     private String description;

@@ -29,6 +29,7 @@ public class OtpController {
 
         return ApiResponse.<Void>builder()
                 .message("OTP sent successfully")
+                .success(true)
                 .build();
     }
 
@@ -45,6 +46,7 @@ public class OtpController {
 
         return ApiResponse.<Void>builder()
                 .message("OTP verified successfully")
+                .success(true)
                 .build();
     }
 }

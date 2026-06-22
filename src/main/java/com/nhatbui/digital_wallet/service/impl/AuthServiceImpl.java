@@ -42,7 +42,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-public class AuthServiceImpl implements AuthService {
+public class  AuthServiceImpl implements AuthService {
     private static final long LOCK_DURATION_SECONDS = 1800;
 
     private final UserRepository userRepository;
@@ -56,7 +56,7 @@ public class AuthServiceImpl implements AuthService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final LoginAttemptService loginAttemptService;
     private final DeviceSessionRepository deviceSessionRepository;
-    private final WalletServiceImpl accountServiceImpl;
+    private final WalletServiceImpl WalletServiceImpl;
     private final RateLimitServiceImpl rateLimitServiceImpl;
     private final PassWordResetTokenRepository passWordResetTokenRepository;
     private final EmailServiceImpl emailServiceImpl;
@@ -74,7 +74,7 @@ public class AuthServiceImpl implements AuthService {
     // Public API
     @Override
     @Transactional
-    public ApiResponse<RegisterResponse> registerUserWithDefaultAccount(CreateUserRequest request) {
+    public ApiResponse<RegisterResponse> registerUserWithDefaultWallet(CreateUserRequest request) {
         if (userRepository.existsByEmail(request.getEmail()) || userRepository.existsByPhone(request.getPhone())) {
             throw new AppException(ErrorCode.REGISTRATION_FAILED);
         }
@@ -85,12 +85,12 @@ public class AuthServiceImpl implements AuthService {
         User user = buildNewUser(request, province);
         User savedUser = userRepository.save(user);
 
-        Wallet defaultWallet = accountServiceImpl.createDefaultAccount(savedUser);
+        Wallet defaultWallet = WalletServiceImpl.createDefaultWallet(savedUser);
         Wallet savedWallet = walletRepository.save(defaultWallet);
 
         RegisterResponse registerResponse = RegisterResponse.builder()
                 .user(userMapper.mapToUserProfileResponse(savedUser))
-                .account(walletMapper.mapToAccountResponse(savedWallet))
+                .wallet(walletMapper.mapToWalletResponse(savedWallet))
                 .build();
 
         return ApiResponse.<RegisterResponse>builder()
@@ -106,7 +106,7 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findByPhone(request.getPhone())
                 .orElseThrow(() -> new AppException(ErrorCode.INVALID_CREDENTIALS));
 
-        checkAccountStatus(user);
+        checkWalletStatus(user);
         verifyPassword(request.getPassword(), user);
 
         refreshTokenRepository.deleteByUserUidAndDeviceId(user.getUid(), request.getDeviceId());
@@ -122,7 +122,7 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(() -> new AppException(ErrorCode.DEVICE_NOT_REGISTERED));
 
         User user = session.getUser();
-        checkAccountStatus(user);
+        checkWalletStatus(user);
         verifyPassword(request.getPassword(), user);
 
         refreshTokenRepository.deleteByUserUidAndDeviceId(user.getUid(), request.getDeviceId());
@@ -290,12 +290,12 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
-    private void checkAccountStatus(User user) {
-        if (!user.getAccountNonLocked()) {
+    private void checkWalletStatus(User user) {
+        if (!user.getWalletNonLocked()) {
             boolean lockExpired = user.getLockTime() != null && user.getLockTime().plusSeconds(LOCK_DURATION_SECONDS).isBefore(Instant.now());
 
             if (lockExpired) {
-                user.setAccountNonLocked(true);
+                user.setWalletNonLocked(true);
                 user.setLockTime(null);
                 user.setFailedLoginAttempts(0);
                 userRepository.save(user);
@@ -332,8 +332,8 @@ public class AuthServiceImpl implements AuthService {
                 .customerId(user.getCustomerId())
                 .fullName(user.getFullName())
                 .phone(user.getPhone())
-                .defaultAccountNumber(checkingWallet.getAccountNumber())
-                .defaultAccountBalance(checkingWallet.getAvailableBalance())
+                .defaultWalletNumber(checkingWallet.getWalletNumber())
+                .defaultWalletBalance(checkingWallet.getAvailableBalance())
                 .build();
 
         return ApiResponse.<UserLoginResponse>builder()
@@ -370,7 +370,7 @@ public class AuthServiceImpl implements AuthService {
                 .role(UserRole.USER)
                 .phoneVerified(false)
                 .failedLoginAttempts(0)
-                .accountNonLocked(true)
+                .walletNonLocked(true)
                 .build();
     }
 

@@ -4,8 +4,8 @@ import com.nhatbui.digital_wallet.config.SecurityUtils;
 import com.nhatbui.digital_wallet.dto.request.CreateWalletRequest;
 import com.nhatbui.digital_wallet.dto.response.ApiResponse;
 import com.nhatbui.digital_wallet.dto.response.BalanceResponse;
-import com.nhatbui.digital_wallet.dto.response.account.WalletResponse;
-import com.nhatbui.digital_wallet.dto.response.account.WalletSummaryResponse;
+import com.nhatbui.digital_wallet.dto.response.wallet.WalletResponse;
+import com.nhatbui.digital_wallet.dto.response.wallet.WalletSummaryResponse;
 import com.nhatbui.digital_wallet.entity.Wallet;
 import com.nhatbui.digital_wallet.entity.User;
 import com.nhatbui.digital_wallet.enums.WalletStatus;
@@ -40,13 +40,13 @@ public class WalletServiceImpl implements WalletService {
     private final SecurityUtils securityUtils;
 
     @Override
-    public Wallet createDefaultAccount(User user) {
-        String accountNumber = walletNumberGenerator.generate(null, null);
+    public Wallet createDefaultWallet(User user) {
+        String walletNumber = walletNumberGenerator.generate(null, null);
 
         return Wallet.builder()
                 .user(user)
-                .accountNumber(accountNumber)
-                .accountName(user.getFullName())
+                .walletNumber(walletNumber)
+                .walletName(user.getFullName())
                 .walletType(WalletType.CHECKING)
                 .currency(CurrencyCode.VND)
                 .balance(BigDecimal.ZERO)
@@ -63,13 +63,13 @@ public class WalletServiceImpl implements WalletService {
 
 
     @Override
-    public ApiResponse<List<WalletSummaryResponse>> getAccountsByUserUid(UUID userId) {
+    public ApiResponse<List<WalletSummaryResponse>> getWalletsByUserUid(UUID userId) {
         if (!userRepository.existsById(userId)) {
             throw new AppException(ErrorCode.USER_NOT_FOUND);
         }
 
         List<Wallet> wallets = walletRepository.findAllByUserUid(userId);
-        List<WalletSummaryResponse> data = walletMapper.mapToAccountSummaryResponse(wallets);
+        List<WalletSummaryResponse> data = walletMapper.mapToWalletSummaryResponse(wallets);
 
         return ApiResponse.<List<WalletSummaryResponse>>builder()
                 .message("Thành công")
@@ -79,11 +79,11 @@ public class WalletServiceImpl implements WalletService {
     }
 
     @Override
-    public ApiResponse<WalletResponse> getAccountByAccountNumber(String accountNumber, UUID userUid) {
-        Wallet wallet = walletRepository.findByAccountNumberAndUserUid(accountNumber, userUid)
+    public ApiResponse<WalletResponse> getWalletByWalletNumber(String walletNumber, UUID userUid) {
+        Wallet wallet = walletRepository.findByWalletNumberAndUserUid(walletNumber, userUid)
                 .orElseThrow(() -> new AppException(ErrorCode.WALLET_NOT_FOUND));
 
-        WalletResponse data = walletMapper.mapToAccountResponse(wallet);
+        WalletResponse data = walletMapper.mapToWalletResponse(wallet);
 
         return ApiResponse.<WalletResponse>builder()
                 .message("Thành công")
@@ -93,15 +93,15 @@ public class WalletServiceImpl implements WalletService {
     }
 
     @Override
-    public ApiResponse<WalletResponse> createAccount(CreateWalletRequest request) {
+    public ApiResponse<WalletResponse> createWallet(CreateWalletRequest request) {
         User user = securityUtils.getCurrentUser();
 
-        String accountNumber = walletNumberGenerator.generate(null, request.getWalletType());
+        String walletNumber = walletNumberGenerator.generate(null, request.getWalletType());
 
         Wallet wallet = Wallet.builder()
                 .user(user)
-                .accountNumber(accountNumber)
-                .accountName(user.getFullName())
+                .walletNumber(walletNumber)
+                .walletName(user.getFullName())
                 .walletType(request.getWalletType())
                 .currency(CurrencyCode.VND)
                 .status(ACTIVE)
@@ -118,7 +118,7 @@ public class WalletServiceImpl implements WalletService {
 
         walletRepository.save(wallet);
 
-        WalletResponse data = walletMapper.mapToAccountResponse(wallet);
+        WalletResponse data = walletMapper.mapToWalletResponse(wallet);
 
         return ApiResponse.<WalletResponse>builder()
                 .message("Tạo tài khoản thành công")
@@ -129,10 +129,10 @@ public class WalletServiceImpl implements WalletService {
 
     @Override
     @Transactional
-    public ApiResponse<Void> changeAccountStatus(UUID accountId, WalletStatus newStatus) {
+    public ApiResponse<Void> changeWalletStatus(UUID walletId, WalletStatus newStatus) {
         User user = securityUtils.getCurrentUser();
 
-        Wallet wallet = walletRepository.findById(accountId)
+        Wallet wallet = walletRepository.findById(walletId)
                 .orElseThrow(() -> new AppException(ErrorCode.WALLET_NOT_FOUND));
 
         if (!wallet.getUser().getUid().equals(user.getUid())) {
@@ -179,10 +179,10 @@ public class WalletServiceImpl implements WalletService {
     }
 
     @Override
-    public ApiResponse<BalanceResponse> getBalance(String accountNumber) {
+    public ApiResponse<BalanceResponse> getBalance(String walletNumber) {
         User user = securityUtils.getCurrentUser();
 
-        Wallet wallet = walletRepository.findByAccountNumber(accountNumber)
+        Wallet wallet = walletRepository.findByWalletNumber(walletNumber)
                 .orElseThrow(() -> new AppException(ErrorCode.WALLET_NOT_FOUND));
 
         if (!wallet.getUser().getUid().equals(user.getUid())) {

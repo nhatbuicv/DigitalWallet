@@ -19,7 +19,7 @@ public class UserAdminResponse {
     private String status;
     private String role;
     private Boolean phoneVerified;
-    private Boolean accountNonLocked;
+    private Boolean walletNonLocked;
     private Integer failedLoginAttempts;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
@@ -35,6 +35,6 @@ public class UserAdminResponse {
     private LocalDateTime updatedAt;
 
     // Thông tin thống kê
-    private Integer totalAccounts;
-    private java.math.BigDecimal totalBalance;
+    private Integer totalWallets;
+    private Long totalBalance;
 }

@@ -2,10 +2,12 @@ package com.nhatbui.digital_wallet.dto.response;
 
 import com.nhatbui.digital_wallet.enums.TransactionStatus;
 import com.nhatbui.digital_wallet.enums.TransactionType;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import lombok.*;
 
-import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.Currency;
 
 @Getter
 @Setter
@@ -17,11 +19,13 @@ public class TransferResponse {
     private String transactionId;
     private String referenceCode;
 
-    private String fromAccountId;
-    private String toAccountId;
+    private String fromWalletId;
+    private String toWalletId;
 
-    private BigDecimal amount;
-    private String currency;
+    private Long amount;
+
+    @Enumerated(EnumType.STRING)
+    private Currency currency;
 
     private TransactionType type;
     private TransactionStatus status;

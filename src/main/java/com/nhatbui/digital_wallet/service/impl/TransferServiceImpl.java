@@ -37,7 +37,6 @@ public class TransferServiceImpl implements TransferService {
     @Transactional
     public ApiResponse<TransferResponse> transfer(TransferRequest request) {
 
-        // Idempotency check
         var existing = transactionRepository.findByIdempotencyKey(request.getIdempotencyKey());
         if (existing.isPresent()) {
             return ApiResponse.<TransferResponse>builder()
@@ -47,25 +46,20 @@ public class TransferServiceImpl implements TransferService {
                     .build();
         }
 
-        // Không thể chuyển cho chính mình
-        if (request.getFromAccountNumber().equals(request.getToAccountNumber()))
+        if (request.getFromWalletNumber().equals(request.getToWalletNumber()))
             throw new AppException(ErrorCode.TRANSFER_SAME_WALLET);
 
         User user = securityUtils.getCurrentUser();
 
-        // Validate quyền sở hữu ví nguồn (không cần lock lúc này)
-        Wallet fromWallet = walletRepository.findByAccountNumberAndUserUid(
-                        request.getFromAccountNumber(), user.getUid())
+        Wallet fromWallet = walletRepository.findByWalletNumberAndUserUid(request.getFromWalletNumber(), user.getUid())
                 .orElseThrow(() -> new AppException(ErrorCode.WALLET_NOT_FOUND));
 
-        Wallet toWallet = walletRepository.findByAccountNumber(request.getToAccountNumber())
+        Wallet toWallet = walletRepository.findByWalletNumber(request.getToWalletNumber())
                 .orElseThrow(() -> new AppException(ErrorCode.WALLET_NOT_FOUND));
 
-        // Lấy UID để sort trước khi lock → tránh deadlock
         UUID fromUid = fromWallet.getUid();
         UUID toUid   = toWallet.getUid();
 
-        // Re-fetch WITH pessimistic lock theo thứ tự UID tăng dần
         Wallet lockedFirst  = fromUid.compareTo(toUid) < 0
                 ? walletRepository.findByUidWithLock(fromUid).orElseThrow(() -> new AppException(ErrorCode.WALLET_NOT_FOUND))
                 : walletRepository.findByUidWithLock(toUid).orElseThrow(() -> new AppException(ErrorCode.WALLET_NOT_FOUND));
@@ -74,11 +68,9 @@ public class TransferServiceImpl implements TransferService {
                 ? walletRepository.findByUidWithLock(toUid).orElseThrow(() -> new AppException(ErrorCode.WALLET_NOT_FOUND))
                 : walletRepository.findByUidWithLock(fromUid).orElseThrow(() -> new AppException(ErrorCode.WALLET_NOT_FOUND));
 
-        // Sau khi giữ lock, resolve lại đúng vai trò từng ví
         fromWallet = lockedFirst.getUid().equals(fromUid) ? lockedFirst : lockedSecond;
         toWallet   = lockedFirst.getUid().equals(toUid)   ? lockedFirst : lockedSecond;
 
-        // Validate status và balance SAU KHI đã giữ lock
         if (fromWallet.getStatus() != WalletStatus.ACTIVE)
             throw new AppException(ErrorCode.WALLET_NOT_FOUND);
 
@@ -88,7 +80,6 @@ public class TransferServiceImpl implements TransferService {
         if (fromWallet.getBalance().compareTo(request.getAmount()) < 0)
             throw new AppException(ErrorCode.INSUFFICIENT_BALANCE);
 
-        // Tạo transaction ở trạng thái PENDING
         Transaction transaction = Transaction.builder()
                 .referenceCode(generateReferenceCode())
                 .fromWallet(fromWallet)
@@ -103,9 +94,8 @@ public class TransferServiceImpl implements TransferService {
 
         transactionRepository.save(transaction);
 
-        // Ghi ledger + cập nhật số dư - tài khoản gửi (DEBIT)
         var fromBalanceBefore = fromWallet.getBalance();
-        var fromBalanceAfter  = fromBalanceBefore.subtract(request.getAmount());
+        var fromBalanceAfter  = fromBalanceBefore - request.getAmount();
         fromWallet.setBalance(fromBalanceAfter);
         walletRepository.save(fromWallet);
 
@@ -119,9 +109,8 @@ public class TransferServiceImpl implements TransferService {
                 .createdAt(Instant.now())
                 .build());
 
-        // Ghi ledger + cập nhật số dư - tài khoản nhận (CREDIT)
         var toBalanceBefore = toWallet.getBalance();
-        var toBalanceAfter  = toBalanceBefore.add(request.getAmount());
+        var toBalanceAfter  = toBalanceBefore + request.getAmount();
         toWallet.setBalance(toBalanceAfter);
         walletRepository.save(toWallet);
 
@@ -135,7 +124,6 @@ public class TransferServiceImpl implements TransferService {
                 .createdAt(Instant.now())
                 .build());
 
-        // Cập nhật trạng thái SUCCESS
         transaction.setStatus(TransactionStatus.SUCCESS);
         transaction.setCompletedAt(Instant.now());
         transactionRepository.save(transaction);
@@ -155,6 +143,6 @@ public class TransferServiceImpl implements TransferService {
     private String generateDescription(Wallet fromWallet, TransferRequest request) {
         if (request.getDescription() != null && !request.getDescription().isBlank())
             return request.getDescription();
-        return fromWallet.getAccountName() + " chuyển tiền";
+        return fromWallet.getWalletName() + " chuyển tiền";
     }
 }

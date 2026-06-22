@@ -33,8 +33,8 @@ public enum ErrorCode {
     DEVICE_NOT_REGISTERED  (1025, "Device is not registered",                          HttpStatus.NOT_FOUND),
 
     // ─── USER STATUS (1050 - 1099) ────────────────────────────────────────
-    USER_LOCKED            (1050, "Your account has been locked due to multiple failed login attempts", HttpStatus.LOCKED),
-    USER_INACTIVE           (1050, "Your account is inactive", HttpStatus.FORBIDDEN),
+    USER_LOCKED            (1050, "Your wallet has been locked due to multiple failed login attempts", HttpStatus.LOCKED),
+    USER_INACTIVE           (1050, "Your wallet is inactive",                          HttpStatus.FORBIDDEN),
     PHONE_NOT_VERIFIED     (1051, "Your phone number has not been verified via OTP",   HttpStatus.FORBIDDEN),
 
     // ─── WALLET MODULE (2001 - 2099) ──────────────────────────────────────
@@ -43,8 +43,9 @@ public enum ErrorCode {
     WALLET_FROZEN          (2003, "Wallet has been frozen. Please contact support",    HttpStatus.FORBIDDEN),
     WALLET_CLOSED          (2004, "Wallet has been closed",                            HttpStatus.BAD_REQUEST),
     WALLET_SUSPENDED       (2005, "Wallet has been suspended. Please contact support", HttpStatus.FORBIDDEN),
-    INVALID_WALLET_NUMBER  (2006, "Invalid wallet account number format",              HttpStatus.BAD_REQUEST),
+    INVALID_WALLET_NUMBER  (2006, "Invalid wallet wallet number format",               HttpStatus.BAD_REQUEST),
     WALLET_STATUS          (2007, "Wallet status is invalid" ,                         HttpStatus.BAD_REQUEST),
+    SYSTEM_WALLET_NOT_FOUND(2008, "System wallet not found" ,                          HttpStatus.NOT_FOUND),
 
     // Wallet status transitions
     CANNOT_FREEZE_LAST_ACTIVE_WALLET(2010, "Cannot freeze the last active wallet. You must have at least one active wallet", HttpStatus.BAD_REQUEST),
@@ -58,6 +59,8 @@ public enum ErrorCode {
     INSUFFICIENT_BALANCE   (4001, "Insufficient balance",                              HttpStatus.BAD_REQUEST),
     TRANSFER_SAME_WALLET   (4002, "Cannot transfer to the same wallet",                HttpStatus.BAD_REQUEST),
     TRANSACTION_NOT_FOUND  (4003, "Transaction not found",                             HttpStatus.NOT_FOUND),
+    INVALID_DEPOSIT_AMOUNT (4004,"Invalid deposit amount",                             HttpStatus.BAD_REQUEST ),
+    INVALID_WITHDRAW_AMOUNT (4005,"Invalid withdraw amount",                             HttpStatus.BAD_REQUEST ),
 
     // ─── LOCATION MODULE (5001 - 5099) ────────────────────────────────────
     PROVINCE_NOT_FOUND     (5001, "Province not found",                                HttpStatus.BAD_REQUEST),

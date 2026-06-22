@@ -28,7 +28,7 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<RegisterResponse>> register(@Valid @RequestBody CreateUserRequest request) {
-        ApiResponse<RegisterResponse> response = authService.registerUserWithDefaultAccount(request);
+        ApiResponse<RegisterResponse> response = authService.registerUserWithDefaultWallet(request);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(response);

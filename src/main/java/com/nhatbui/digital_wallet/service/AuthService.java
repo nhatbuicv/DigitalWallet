@@ -14,7 +14,7 @@ import com.nimbusds.jose.JOSEException;
 import java.text.ParseException;
 
 public interface  AuthService {
-    ApiResponse<RegisterResponse> registerUserWithDefaultAccount(CreateUserRequest request);
+    ApiResponse<RegisterResponse> registerUserWithDefaultWallet(CreateUserRequest request);
 
     ApiResponse<UserLoginResponse> loginWithPassword(PasswordLoginRequest request);
 
