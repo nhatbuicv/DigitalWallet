@@ -1,5 +1,6 @@
 package com.nhatbui.digital_wallet.dto.response;
 
+import com.nhatbui.digital_wallet.enums.CurrencyCode;
 import com.nhatbui.digital_wallet.enums.TransactionStatus;
 import com.nhatbui.digital_wallet.enums.TransactionType;
 import jakarta.persistence.EnumType;
@@ -25,7 +26,7 @@ public class TransferResponse {
     private Long amount;
 
     @Enumerated(EnumType.STRING)
-    private Currency currency;
+    private CurrencyCode currency;
 
     private TransactionType type;
     private TransactionStatus status;
