@@ -114,7 +114,9 @@ public class DepositServiceImpl implements DepositService {
         ledgerEntryRepository.saveAll(List.of(debitSystem, creditUser));
 
         lockedSystem.setBalance(systemBalanceAfter);
+        lockedSystem.setAvailableBalance(systemBalanceAfter);
         lockedUser.setBalance(userBalanceAfter);
+        lockedUser.setAvailableBalance(userBalanceAfter);
 
         walletRepository.saveAll(List.of(lockedSystem, lockedUser));
 

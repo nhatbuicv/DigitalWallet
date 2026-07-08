@@ -5,6 +5,8 @@ import com.nhatbui.digital_wallet.dto.request.VerifyOtpRequest;
 import com.nhatbui.digital_wallet.dto.response.ApiResponse;
 import com.nhatbui.digital_wallet.exception.AppException;
 import com.nhatbui.digital_wallet.exception.ErrorCode;
+import com.nhatbui.digital_wallet.service.EmailService;
+import com.nhatbui.digital_wallet.service.impl.EmailServiceImpl;
 import com.nhatbui.digital_wallet.service.impl.OtpService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -19,13 +21,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class OtpController {
 
     private final OtpService otpService;
+    private final EmailService emailService;
 
     @PostMapping("/send")
     public ApiResponse<Void> sendOtp(@Valid @RequestBody SendOtpRequest request) {
-
-        String otp = otpService.generateOtp(request.getPhone());
-
-        System.out.println("OTP = " + otp);
+        emailService.sendToEmail(request.getEmail());
 
         return ApiResponse.<Void>builder()
                 .message("OTP sent successfully")
@@ -36,13 +36,13 @@ public class OtpController {
     @PostMapping("/verify")
     public ApiResponse<Void> verifyOtp(@Valid @RequestBody VerifyOtpRequest request) {
 
-        boolean valid = otpService.verifyOtp(request.getPhone(), request.getOtp());
+        boolean valid = otpService.verifyOtp(request.getEmail(), request.getOtp());
 
         if (!valid) {
             throw new AppException(ErrorCode.UNAUTHORIZED);
         }
 
-        otpService.activateUser(request.getPhone());
+        otpService.activateUser(request.getEmail());
 
         return ApiResponse.<Void>builder()
                 .message("OTP verified successfully")
