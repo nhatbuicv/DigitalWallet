@@ -115,7 +115,10 @@ public class WithdrawServiceImpl implements WithdrawService {
         ledgerEntryRepository.saveAll(List.of(debitUser, creditSystem));
 
         lockedUser.setBalance(userBalanceAfter);
+        lockedUser.setBalance(userBalanceAfter);
+
         lockedSystem.setBalance(systemBalanceAfter);
+        lockedUser.setAvailableBalance(userBalanceAfter);
 
         walletRepository.saveAll(List.of(lockedUser, lockedSystem));
 

@@ -97,6 +97,7 @@ public class TransferServiceImpl implements TransferService {
         var fromBalanceBefore = fromWallet.getBalance();
         var fromBalanceAfter  = fromBalanceBefore - request.getAmount();
         fromWallet.setBalance(fromBalanceAfter);
+        fromWallet.setAvailableBalance(fromBalanceAfter);
         walletRepository.save(fromWallet);
 
         ledgerEntryRepository.save(LedgerEntry.builder()
@@ -112,6 +113,7 @@ public class TransferServiceImpl implements TransferService {
         var toBalanceBefore = toWallet.getBalance();
         var toBalanceAfter  = toBalanceBefore + request.getAmount();
         toWallet.setBalance(toBalanceAfter);
+        toWallet.setAvailableBalance(toBalanceAfter);
         walletRepository.save(toWallet);
 
         ledgerEntryRepository.save(LedgerEntry.builder()

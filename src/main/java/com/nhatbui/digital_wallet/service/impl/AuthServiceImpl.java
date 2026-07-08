@@ -1,5 +1,6 @@
 package com.nhatbui.digital_wallet.service.impl;
 
+import com.nhatbui.digital_wallet.config.SecurityUtils;
 import com.nhatbui.digital_wallet.dto.request.CreateUserRequest;
 import com.nhatbui.digital_wallet.dto.request.PasswordLoginRequest;
 import com.nhatbui.digital_wallet.dto.request.QuickLoginRequest;
@@ -60,6 +61,7 @@ public class  AuthServiceImpl implements AuthService {
     private final RateLimitServiceImpl rateLimitServiceImpl;
     private final PassWordResetTokenRepository passWordResetTokenRepository;
     private final EmailServiceImpl emailServiceImpl;
+    private final SecurityUtils securityUtils;
 
     @Value("${jwt.signerKey}")
     private String signerKey;
@@ -136,10 +138,15 @@ public class  AuthServiceImpl implements AuthService {
 
     @Override
     public ApiResponse<DeviceSessionResponse> getDeviceSession(String deviceId) {
+        User user = securityUtils.getCurrentUser();
+
         DeviceSession session = deviceSessionRepository.findByDeviceId(deviceId)
                 .orElseThrow(() -> new AppException(ErrorCode.DEVICE_NOT_REGISTERED));
 
-        User user = session.getUser();
+
+        if(!user.getUid().equals(session.getUser().getUid())){
+            throw new AppException(ErrorCode.DEVICE_NOT_REGISTERED);
+        }
 
         return ApiResponse.<DeviceSessionResponse>builder()
                 .success(true)
