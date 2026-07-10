@@ -1,4 +1,4 @@
-package com.nhatbui.digital_wallet.dto.response;
+package com.nhatbui.digital_wallet.dto.response.wallet;
 
 import com.nhatbui.digital_wallet.enums.CurrencyCode;
 import com.nhatbui.digital_wallet.enums.TransactionStatus;
@@ -8,7 +8,6 @@ import jakarta.persistence.Enumerated;
 import lombok.*;
 
 import java.time.Instant;
-import java.util.Currency;
 
 @Getter
 @Setter

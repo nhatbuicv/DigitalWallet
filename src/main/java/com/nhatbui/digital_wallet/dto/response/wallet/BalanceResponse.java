@@ -1,4 +1,4 @@
-package com.nhatbui.digital_wallet.dto.response;
+package com.nhatbui.digital_wallet.dto.response.wallet;
 
 import com.nhatbui.digital_wallet.enums.CurrencyCode;
 import lombok.Builder;

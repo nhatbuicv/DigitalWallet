@@ -1,6 +1,6 @@
 package com.nhatbui.digital_wallet.mapper;
 
-import com.nhatbui.digital_wallet.dto.response.TransferResponse;
+import com.nhatbui.digital_wallet.dto.response.wallet.TransferResponse;
 import com.nhatbui.digital_wallet.entity.Transaction;
 import org.mapstruct.Mapper;
 

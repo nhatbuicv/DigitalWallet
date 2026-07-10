@@ -1,7 +1,7 @@
 package com.nhatbui.digital_wallet.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nhatbui.digital_wallet.dto.response.ApiResponse;
+import com.nhatbui.digital_wallet.dto.response.common.ApiResponse;
 import com.nhatbui.digital_wallet.exception.ErrorCode;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;

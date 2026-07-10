@@ -1,14 +1,10 @@
-package com.nhatbui.digital_wallet.dto.request;
+package com.nhatbui.digital_wallet.dto.request.wallet;
 
 import jakarta.validation.constraints.*;
 import lombok.*;
 
 
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@Data
 public class TransferRequest {
 
     @NotBlank(message = "From Wallet is required")

@@ -1,4 +1,4 @@
-package com.nhatbui.digital_wallet.dto.request;
+package com.nhatbui.digital_wallet.dto.request.wallet;
 
 import com.nhatbui.digital_wallet.enums.WalletType;
 import jakarta.validation.constraints.*;

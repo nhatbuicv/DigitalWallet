@@ -1,4 +1,4 @@
-package com.nhatbui.digital_wallet.dto.response;
+package com.nhatbui.digital_wallet.dto.response.common;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;

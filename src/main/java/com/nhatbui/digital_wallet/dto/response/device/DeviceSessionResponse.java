@@ -1,4 +1,4 @@
-package com.nhatbui.digital_wallet.dto.response;
+package com.nhatbui.digital_wallet.dto.response.device;
 
 import lombok.Builder;
 import lombok.Data;

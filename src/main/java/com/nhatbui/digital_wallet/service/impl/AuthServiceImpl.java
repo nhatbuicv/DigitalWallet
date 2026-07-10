@@ -1,12 +1,13 @@
 package com.nhatbui.digital_wallet.service.impl;
 
 import com.nhatbui.digital_wallet.config.SecurityUtils;
-import com.nhatbui.digital_wallet.dto.request.CreateUserRequest;
-import com.nhatbui.digital_wallet.dto.request.PasswordLoginRequest;
-import com.nhatbui.digital_wallet.dto.request.QuickLoginRequest;
-import com.nhatbui.digital_wallet.dto.request.RefreshTokenRequest;
-import com.nhatbui.digital_wallet.dto.response.ApiResponse;
-import com.nhatbui.digital_wallet.dto.response.DeviceSessionResponse;
+import com.nhatbui.digital_wallet.dto.request.user.CreateUserRequest;
+import com.nhatbui.digital_wallet.dto.request.auth.PasswordLoginRequest;
+import com.nhatbui.digital_wallet.dto.request.auth.QuickLoginRequest;
+import com.nhatbui.digital_wallet.dto.request.auth.RefreshTokenRequest;
+import com.nhatbui.digital_wallet.entity.User;
+import com.nhatbui.digital_wallet.dto.response.common.ApiResponse;
+import com.nhatbui.digital_wallet.dto.response.device.DeviceSessionResponse;
 import com.nhatbui.digital_wallet.dto.response.auth.RegisterResponse;
 import com.nhatbui.digital_wallet.dto.response.auth.TokenRefreshResponse;
 import com.nhatbui.digital_wallet.dto.response.auth.UserLoginResponse;
@@ -36,7 +37,6 @@ import org.springframework.stereotype.Service;
 
 import java.text.ParseException;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;

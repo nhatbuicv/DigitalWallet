@@ -53,6 +53,7 @@ public class Wallet {
     @Builder.Default
     Long availableBalance = 0L;
 
+    @Column(nullable = false)
     @Builder.Default
     Long blockedBalance = 0L;
 
@@ -70,9 +71,15 @@ public class Wallet {
     @Builder.Default
     Long minimumBalance = 0L;
 
-    Long dailyLimit;
+    @Column(nullable = false)
+    @Builder.Default
+    Long dailyLimit ;
 
     Long monthlyLimit;
+
+    @Column(nullable = false)
+    @Builder.Default
+    Long singleTransactionLimit = 50000000L ;
 
     @Column(length = 10)
     String branchCode;

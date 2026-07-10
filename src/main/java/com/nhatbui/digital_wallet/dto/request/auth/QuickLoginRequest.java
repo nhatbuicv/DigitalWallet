@@ -1,12 +1,10 @@
-package com.nhatbui.digital_wallet.dto.request;
+package com.nhatbui.digital_wallet.dto.request.auth;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import lombok.Builder;
 import lombok.Data;
 
 @Data
-@Builder
 public class QuickLoginRequest {
     @NotBlank(message = "Device ID is required")
     @Size(max = 100, message = "Device ID must not exceed 100 characters")
