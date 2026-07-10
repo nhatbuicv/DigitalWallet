@@ -1,4 +1,4 @@
-package com.nhatbui.digital_wallet.dto.request;
+package com.nhatbui.digital_wallet.dto.request.auth;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;

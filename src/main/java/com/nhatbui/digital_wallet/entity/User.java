@@ -1,6 +1,5 @@
 package com.nhatbui.digital_wallet.entity;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import com.nhatbui.digital_wallet.enums.UserRole;
 import com.nhatbui.digital_wallet.enums.UserStatus;
 import jakarta.persistence.*;

@@ -1,4 +1,4 @@
-package com.nhatbui.digital_wallet.dto.response;
+package com.nhatbui.digital_wallet.dto.response.common;
 
 import lombok.*;
 import lombok.experimental.FieldDefaults;

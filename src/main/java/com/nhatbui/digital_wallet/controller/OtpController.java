@@ -1,12 +1,11 @@
 package com.nhatbui.digital_wallet.controller;
 
-import com.nhatbui.digital_wallet.dto.request.SendOtpRequest;
-import com.nhatbui.digital_wallet.dto.request.VerifyOtpRequest;
-import com.nhatbui.digital_wallet.dto.response.ApiResponse;
+import com.nhatbui.digital_wallet.dto.request.auth.SendOtpRequest;
+import com.nhatbui.digital_wallet.dto.request.auth.VerifyOtpRequest;
+import com.nhatbui.digital_wallet.dto.response.common.ApiResponse;
 import com.nhatbui.digital_wallet.exception.AppException;
 import com.nhatbui.digital_wallet.exception.ErrorCode;
 import com.nhatbui.digital_wallet.service.EmailService;
-import com.nhatbui.digital_wallet.service.impl.EmailServiceImpl;
 import com.nhatbui.digital_wallet.service.impl.OtpService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

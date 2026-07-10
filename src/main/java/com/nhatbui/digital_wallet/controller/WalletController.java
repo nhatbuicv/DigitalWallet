@@ -1,9 +1,9 @@
 package com.nhatbui.digital_wallet.controller;
 
 import com.nhatbui.digital_wallet.config.SecurityUtils;
-import com.nhatbui.digital_wallet.dto.request.CreateWalletRequest;
-import com.nhatbui.digital_wallet.dto.response.ApiResponse;
-import com.nhatbui.digital_wallet.dto.response.BalanceResponse;
+import com.nhatbui.digital_wallet.dto.request.wallet.CreateWalletRequest;
+import com.nhatbui.digital_wallet.dto.response.common.ApiResponse;
+import com.nhatbui.digital_wallet.dto.response.wallet.BalanceResponse;
 
 import com.nhatbui.digital_wallet.dto.response.wallet.WalletResponse;
 import com.nhatbui.digital_wallet.dto.response.wallet.WalletSummaryResponse;

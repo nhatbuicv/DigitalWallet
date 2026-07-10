@@ -1,9 +1,9 @@
 package com.nhatbui.digital_wallet.service.impl;
 
 import com.nhatbui.digital_wallet.config.SecurityUtils;
-import com.nhatbui.digital_wallet.dto.request.DepositRequest;
-import com.nhatbui.digital_wallet.dto.response.ApiResponse;
-import com.nhatbui.digital_wallet.dto.response.TransferResponse;
+import com.nhatbui.digital_wallet.dto.request.wallet.DepositRequest;
+import com.nhatbui.digital_wallet.dto.response.common.ApiResponse;
+import com.nhatbui.digital_wallet.dto.response.wallet.TransferResponse;
 import com.nhatbui.digital_wallet.entity.LedgerEntry;
 import com.nhatbui.digital_wallet.entity.Transaction;
 import com.nhatbui.digital_wallet.entity.Wallet;

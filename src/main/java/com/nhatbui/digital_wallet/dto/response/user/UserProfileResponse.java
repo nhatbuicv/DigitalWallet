@@ -1,7 +1,7 @@
 package com.nhatbui.digital_wallet.dto.response.user;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.nhatbui.digital_wallet.dto.response.ProvinceResponse;
+import com.nhatbui.digital_wallet.dto.response.location.ProvinceResponse;
 import lombok.Builder;
 import lombok.Data;
 

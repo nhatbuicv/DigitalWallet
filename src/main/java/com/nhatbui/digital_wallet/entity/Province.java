@@ -11,7 +11,6 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 public class Province {
-
     @Id
     @Column(length = 3)
     private String code;

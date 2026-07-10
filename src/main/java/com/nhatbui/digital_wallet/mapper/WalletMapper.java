@@ -1,6 +1,6 @@
 package com.nhatbui.digital_wallet.mapper;
 
-import com.nhatbui.digital_wallet.dto.response.BalanceResponse;
+import com.nhatbui.digital_wallet.dto.response.wallet.BalanceResponse;
 import com.nhatbui.digital_wallet.dto.response.wallet.WalletResponse;
 import com.nhatbui.digital_wallet.dto.response.wallet.WalletSummaryResponse;
 import com.nhatbui.digital_wallet.entity.Wallet;

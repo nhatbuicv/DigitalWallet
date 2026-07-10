@@ -1,6 +1,6 @@
 package com.nhatbui.digital_wallet.exception;
 
-import com.nhatbui.digital_wallet.dto.response.ApiResponse;
+import com.nhatbui.digital_wallet.dto.response.common.ApiResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;

@@ -1,4 +1,4 @@
-package com.nhatbui.digital_wallet.dto.request;
+package com.nhatbui.digital_wallet.dto.request.wallet;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;

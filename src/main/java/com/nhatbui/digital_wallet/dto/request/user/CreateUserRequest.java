@@ -1,4 +1,4 @@
-package com.nhatbui.digital_wallet.dto.request;
+package com.nhatbui.digital_wallet.dto.request.user;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.nhatbui.digital_wallet.validator.PasswordMatch;

@@ -31,6 +31,7 @@ public enum ErrorCode {
     CITIZEN_ID_ALREADY_EXISTS(1023, "Citizen ID is already registered",                HttpStatus.BAD_REQUEST),
     USER_NOT_FOUND         (1024, "User not found",                                    HttpStatus.NOT_FOUND),
     DEVICE_NOT_REGISTERED  (1025, "Device is not registered",                          HttpStatus.NOT_FOUND),
+    SAME_AS_OLD_PASSWORD(1026,"Password same old password" ,                           HttpStatus.BAD_REQUEST),
 
     // ─── USER STATUS (1050 - 1099) ────────────────────────────────────────
     USER_LOCKED            (1050, "Your wallet has been locked due to multiple failed login attempts", HttpStatus.LOCKED),
@@ -60,7 +61,8 @@ public enum ErrorCode {
     TRANSFER_SAME_WALLET   (4002, "Cannot transfer to the same wallet",                HttpStatus.BAD_REQUEST),
     TRANSACTION_NOT_FOUND  (4003, "Transaction not found",                             HttpStatus.NOT_FOUND),
     INVALID_DEPOSIT_AMOUNT (4004,"Invalid deposit amount",                             HttpStatus.BAD_REQUEST ),
-    INVALID_WITHDRAW_AMOUNT (4005,"Invalid withdraw amount",                             HttpStatus.BAD_REQUEST ),
+    INVALID_WITHDRAW_AMOUNT (4005,"Invalid withdraw amount",                           HttpStatus.BAD_REQUEST ),
+    SINGLE_TRANSACTION_LIMIT_EXCEEDED(4006 , "" ,                            HttpStatus.BAD_REQUEST ),
 
     // ─── LOCATION MODULE (5001 - 5099) ────────────────────────────────────
     PROVINCE_NOT_FOUND     (5001, "Province not found",                                HttpStatus.BAD_REQUEST),
