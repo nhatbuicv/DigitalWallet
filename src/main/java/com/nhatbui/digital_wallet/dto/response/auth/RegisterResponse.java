@@ -4,8 +4,11 @@ import com.nhatbui.digital_wallet.dto.response.wallet.WalletResponse;
 import com.nhatbui.digital_wallet.dto.response.user.UserProfileResponse;
 import lombok.Builder;
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
-@Data
+@Getter
+@Setter
 @Builder
 public class RegisterResponse {
     private UserProfileResponse user;

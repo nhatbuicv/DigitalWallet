@@ -3,12 +3,13 @@ package com.nhatbui.digital_wallet.dto.response.wallet;
 import com.nhatbui.digital_wallet.enums.WalletStatus;
 import com.nhatbui.digital_wallet.enums.WalletType;
 import com.nhatbui.digital_wallet.enums.CurrencyCode;
-import lombok.Builder;
-import lombok.Data;
+import lombok.*;
+
 import java.time.Instant;
 import java.util.UUID;
 
-@Data
+@Getter
+@Setter
 @Builder
 public class WalletResponse {
     private UUID uid;

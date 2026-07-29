@@ -2,14 +2,14 @@ package com.nhatbui.digital_wallet.dto.response.user;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.nhatbui.digital_wallet.dto.response.location.ProvinceResponse;
-import lombok.Builder;
-import lombok.Data;
+import lombok.*;
 
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 
-@Data
+@Getter
+@Setter
 @Builder
 public class UserProfileResponse {
 
