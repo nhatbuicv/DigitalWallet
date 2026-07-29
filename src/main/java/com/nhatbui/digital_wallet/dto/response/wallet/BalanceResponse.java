@@ -1,11 +1,11 @@
 package com.nhatbui.digital_wallet.dto.response.wallet;
 
 import com.nhatbui.digital_wallet.enums.CurrencyCode;
-import lombok.Builder;
-import lombok.Data;
+import lombok.*;
 
 
-@Data
+@Getter
+@Setter
 @Builder
 public class BalanceResponse {
 

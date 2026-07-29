@@ -1,6 +1,6 @@
 package com.nhatbui.digital_wallet.enums;
 
 public enum EntryType {
-    DEBIT,
-    CREDIT
+    DEBIT, // tiền ra
+    CREDIT // tiền vào
 }

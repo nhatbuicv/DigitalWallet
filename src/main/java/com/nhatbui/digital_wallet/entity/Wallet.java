@@ -72,7 +72,6 @@ public class Wallet {
     Long minimumBalance = 0L;
 
     @Column(nullable = false)
-    @Builder.Default
     Long dailyLimit ;
 
     Long monthlyLimit;

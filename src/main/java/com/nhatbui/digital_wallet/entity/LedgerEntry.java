@@ -32,13 +32,10 @@ public class LedgerEntry {
     @Column(nullable = false, length = 10)
     private EntryType entryType;
 
-    @Column( nullable = false, precision = 19, scale = 4)
     private Long amount;
 
-    @Column( nullable = false, precision = 19, scale = 4)
     private Long balanceBefore;
 
-    @Column( nullable = false, precision = 19, scale = 4)
     private Long balanceAfter;
 
     @Column(nullable = false, updatable = false)

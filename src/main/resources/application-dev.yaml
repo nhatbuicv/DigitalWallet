@@ -1,0 +1,20 @@
+spring:
+  springdoc:
+    api-docs:
+      enabled: true
+      path: /v3/api-docs
+    swagger-ui:
+      enabled: true
+      path: /swagger-ui.html
+      try-it-out-enabled: true
+      operations-sorter: method
+      tags-sorter: alpha
+      display-request-duration: true
+      doc-expansion: none
+
+logging:
+  level:
+    root: INFO
+    com.nhatbui: DEBUG
+    org.springframework.web: DEBUG
+    org.springdoc: DEBUG

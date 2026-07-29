@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -46,15 +47,8 @@ public class SecurityConfig {
             "/auth/quick-login",
             "/auth/refresh",
             "/auth/device-session/**",
-
-
             "/auth/otp/send",
             "/auth/otp/verify",
-
-
-            "/v3/api-docs/**",
-            "/swagger-ui/**",
-            "/swagger-ui.html"
     };
 
     @Value("${jwt.signerKey}")
@@ -66,6 +60,7 @@ public class SecurityConfig {
     }
 
     @Bean
+    @Order(2)
     public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtDecoder jwtDecoder) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
@@ -73,8 +68,6 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(PUBLIC_ENDPOINT).permitAll()
-                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**")
-                        .hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2
