@@ -17,6 +17,7 @@ import com.nhatbui.digital_wallet.repository.TransactionRepository;
 import com.nhatbui.digital_wallet.repository.WalletRepository;
 import com.nhatbui.digital_wallet.service.TransferService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,6 +36,7 @@ public class TransferServiceImpl implements TransferService {
 
     @Override
     @Transactional
+    @PreAuthorize("isAuthenticated()")
     public ApiResponse<TransferResponse> transfer(TransferRequest request) {
 
         var existing = transactionRepository.findByIdempotencyKey(request.getIdempotencyKey());

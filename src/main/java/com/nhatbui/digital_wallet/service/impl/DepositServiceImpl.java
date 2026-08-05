@@ -20,6 +20,7 @@ import com.nhatbui.digital_wallet.repository.WalletRepository;
 import com.nhatbui.digital_wallet.service.DepositService;
 import com.nhatbui.digital_wallet.service.SystemWalletService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +40,7 @@ public class DepositServiceImpl implements DepositService {
 
     @Transactional
     @Override
+    @PreAuthorize("isAuthenticated()")
     public ApiResponse<TransferResponse> deposit(DepositRequest depositRequest) {
         var existing = transactionRepository.findByIdempotencyKey(
                 depositRequest.getIdempotencyKey());

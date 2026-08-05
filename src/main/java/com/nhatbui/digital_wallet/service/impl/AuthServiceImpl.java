@@ -32,6 +32,7 @@ import com.nimbusds.jwt.SignedJWT;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -137,6 +138,7 @@ public class  AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @PreAuthorize("isAuthenticated()")
     public ApiResponse<DeviceSessionResponse> getDeviceSession(String deviceId) {
         User user = securityUtils.getCurrentUser();
 
@@ -191,6 +193,7 @@ public class  AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
+    @PreAuthorize("isAuthenticated()")
     public ApiResponse<Void> logout(RefreshTokenRequest request) throws ParseException, JOSEException {
             var signedJWT = verifyToken(request.getRefreshToken(), "refresh");
             String jti = signedJWT.getJWTClaimsSet().getJWTID();
@@ -204,6 +207,7 @@ public class  AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
+    @PreAuthorize("isAuthenticated()")
     public ApiResponse<Void> logoutAll(RefreshTokenRequest request) throws ParseException, JOSEException {
             var signedJWT = verifyToken(request.getRefreshToken(), "refresh");
             String userId = signedJWT.getJWTClaimsSet().getSubject();
@@ -217,6 +221,7 @@ public class  AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
+    @PreAuthorize("isAuthenticated()")
     public ApiResponse<Void> deleteDeviceSession(String deviceId) {
         deviceSessionRepository.findByDeviceId(deviceId).ifPresent(session -> {
             refreshTokenRepository.deleteByUserUidAndDeviceId(session.getUser().getUid(), deviceId);

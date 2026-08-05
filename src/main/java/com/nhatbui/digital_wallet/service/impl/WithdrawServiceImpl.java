@@ -20,6 +20,7 @@ import com.nhatbui.digital_wallet.repository.WalletRepository;
 import com.nhatbui.digital_wallet.service.SystemWalletService;
 import com.nhatbui.digital_wallet.service.WithdrawService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,6 +41,7 @@ public class WithdrawServiceImpl implements WithdrawService {
 
     @Transactional
     @Override
+    @PreAuthorize("isAuthenticated()")
     public ApiResponse<TransferResponse> withdraw(WithdrawRequest withdrawRequest) {
 
         var existing = transactionRepository.findByIdempotencyKey(withdrawRequest.getIdempotencyKey());

@@ -11,7 +11,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.stereotype.Service;
 
 @Configuration
-@Profile({"local" , "dev"})
+@Profile({"local"})
 @Slf4j
 public class SwaggerSecurityConfig {
     @Bean
