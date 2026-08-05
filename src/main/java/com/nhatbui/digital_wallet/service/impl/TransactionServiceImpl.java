@@ -11,6 +11,7 @@ import com.nhatbui.digital_wallet.service.TransactionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -21,6 +22,7 @@ public class TransactionServiceImpl implements TransactionService {
     private final SecurityUtils securityUtils;
 
     @Override
+    @PreAuthorize("isAuthenticated()")
     public PageResponse<TransactionHistoryResponse> getMyTransactionHistory(Pageable pageable , EntryType entryType , Instant fromDate , Instant toDate) {
         var userID = securityUtils.getCurrentUserId();
 
@@ -28,6 +30,7 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     @Override
+    @PreAuthorize("isAuthenticated()")
     public TransactionDetailResponse getTransactionDetail(String transactionId) {
         return null;
     }

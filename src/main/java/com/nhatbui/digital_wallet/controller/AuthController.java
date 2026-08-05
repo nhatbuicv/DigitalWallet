@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.text.ParseException;
@@ -44,6 +45,7 @@ public class AuthController {
     }
 
     @GetMapping("/device-session/{deviceId}")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<DeviceSessionResponse>> getDeviceSession(@PathVariable String deviceId) {
         return ResponseEntity
                 .status(HttpStatus.OK)
@@ -67,6 +69,7 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<Void>> logout(@Valid @RequestBody RefreshTokenRequest request) throws ParseException, JOSEException {
         ApiResponse<Void> response = authService.logout(request);
         return ResponseEntity
@@ -75,6 +78,7 @@ public class AuthController {
     }
 
     @PostMapping("/logout-all")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<Void>> logoutAll(@Valid @RequestBody RefreshTokenRequest request) throws ParseException, JOSEException {
         ApiResponse<Void> response = authService.logoutAll(request);
         return ResponseEntity
@@ -83,6 +87,7 @@ public class AuthController {
     }
 
     @DeleteMapping("/device-session/{deviceId}")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<Void>> deleteDeviceSession(@PathVariable String deviceId) {
         ApiResponse<Void> response = authService.deleteDeviceSession(deviceId);
         return ResponseEntity

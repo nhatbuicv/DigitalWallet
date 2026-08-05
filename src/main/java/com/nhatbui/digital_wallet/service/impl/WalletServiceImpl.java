@@ -19,6 +19,7 @@ import com.nhatbui.digital_wallet.repository.WalletRepository;
 import com.nhatbui.digital_wallet.repository.UserRepository;
 import com.nhatbui.digital_wallet.service.WalletService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -62,7 +63,13 @@ public class WalletServiceImpl implements WalletService {
 
 
     @Override
+    @PreAuthorize("isAuthenticated()")
     public ApiResponse<List<WalletSummaryResponse>> getWalletsByUserUid(UUID userId) {
+        UUID currentUserId = securityUtils.getCurrentUserId();
+        if (!currentUserId.equals(userId)) {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
+
         if (!userRepository.existsById(userId)) {
             throw new AppException(ErrorCode.USER_NOT_FOUND);
         }
@@ -78,6 +85,7 @@ public class WalletServiceImpl implements WalletService {
     }
 
     @Override
+    @PreAuthorize("isAuthenticated()")
     public ApiResponse<WalletResponse> getWalletByWalletNumber(String walletNumber, UUID userUid) {
         Wallet wallet = walletRepository.findByWalletNumberAndUserUid(walletNumber, userUid)
                 .orElseThrow(() -> new AppException(ErrorCode.WALLET_NOT_FOUND));
@@ -92,6 +100,7 @@ public class WalletServiceImpl implements WalletService {
     }
 
     @Override
+    @PreAuthorize("isAuthenticated()")
     public ApiResponse<WalletResponse> createWallet(CreateWalletRequest request) {
         User user = securityUtils.getCurrentUser();
 
@@ -128,6 +137,7 @@ public class WalletServiceImpl implements WalletService {
 
     @Override
     @Transactional
+    @PreAuthorize("isAuthenticated()")
     public ApiResponse<Void> changeWalletStatus(UUID walletId, WalletStatus newStatus) {
         User user = securityUtils.getCurrentUser();
 
@@ -178,6 +188,7 @@ public class WalletServiceImpl implements WalletService {
     }
 
     @Override
+    @PreAuthorize("isAuthenticated()")
     public ApiResponse<BalanceResponse> getBalance(String walletNumber) {
         User user = securityUtils.getCurrentUser();
 
