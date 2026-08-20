@@ -14,9 +14,9 @@ spring:
 
 logging:
   level:
-    root: DEBUG
+    root: INFO
     com.nhatbui: DEBUG
-    org.springframework: DEBUG
-    org.springdoc: DEBUG
+    org.springframework: INFO
+    org.springdoc: INFO
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE

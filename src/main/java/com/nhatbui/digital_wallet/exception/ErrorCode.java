@@ -23,6 +23,9 @@ public enum ErrorCode {
     REFRESH_TOKEN_NOT_FOUND(1006, "Refresh token not found or already revoked",        HttpStatus.UNAUTHORIZED),
     INVALID_RESET_TOKEN    (1007, "Invalid or expired password reset token",           HttpStatus.BAD_REQUEST),
     TOKEN_ALREADY_USED     (1008, "This reset token has already been used",            HttpStatus.BAD_REQUEST),
+    INVALID_PHONE_FORMAT   (1009, "Invalid phone number format",                       HttpStatus.BAD_REQUEST),
+    INVALID_EMAIL_FORMAT   (1010, "Invalid email format",                              HttpStatus.BAD_REQUEST),
+    CLIENT_TYPE_NOT_ALLOWED(1011, "This client type is not allowed for your account",  HttpStatus.FORBIDDEN),
 
     // ─── USER MODULE (1020 - 1049) ────────────────────────────────────────
     REGISTRATION_FAILED    (1020, "Registration failed. Please check your information or contact support", HttpStatus.CONFLICT),

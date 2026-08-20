@@ -4,7 +4,7 @@ import com.nhatbui.digital_wallet.dto.request.auth.ChangePasswordRequest;
 import com.nhatbui.digital_wallet.dto.request.user.UpdateProfileRequest;
 import com.nhatbui.digital_wallet.dto.response.common.ApiResponse;
 import com.nhatbui.digital_wallet.dto.response.user.UserProfileResponse;
-import com.nhatbui.digital_wallet.service.UserService;
+import com.nhatbui.digital_wallet.service.user.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
