@@ -8,7 +8,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-public interface PassWordResetTokenRepository extends JpaRepository<PasswordResetToken, UUID> {
+public interface PasswordResetTokenRepository extends JpaRepository<PasswordResetToken, UUID> {
     List<PasswordResetToken> findByExpiresAtAfter(Instant now);
 
     void deleteByUserUid(User user);

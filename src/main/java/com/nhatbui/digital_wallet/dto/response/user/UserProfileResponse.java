@@ -18,21 +18,13 @@ public class UserProfileResponse {
     private String fullName;
     private String email;
     private String phone;
-
-    // Thông tin cá nhân (chỉ user mới thấy)
     private ProvinceResponse provinceResponse;
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate dateOfBirth;
     private String address;
-
-    // Trạng thái tài khoản
     private String status;
     private String role;
-
-    // Xác thực
     private Boolean phoneVerified;
-
-    // Thông tin bảo mật
     private Boolean walletNonLocked;
     private Integer failedLoginAttempts;
 

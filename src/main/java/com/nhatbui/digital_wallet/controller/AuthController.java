@@ -7,7 +7,7 @@ import com.nhatbui.digital_wallet.dto.response.device.DeviceSessionResponse;
 import com.nhatbui.digital_wallet.dto.response.auth.RegisterResponse;
 import com.nhatbui.digital_wallet.dto.response.auth.TokenRefreshResponse;
 import com.nhatbui.digital_wallet.dto.response.auth.UserLoginResponse;
-import com.nhatbui.digital_wallet.service.AuthService;
+import com.nhatbui.digital_wallet.service.auth.AuthService;
 import com.nimbusds.jose.JOSEException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;

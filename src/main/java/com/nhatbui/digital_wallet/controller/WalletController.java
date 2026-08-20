@@ -8,7 +8,7 @@ import com.nhatbui.digital_wallet.dto.response.wallet.BalanceResponse;
 import com.nhatbui.digital_wallet.dto.response.wallet.WalletResponse;
 import com.nhatbui.digital_wallet.dto.response.wallet.WalletSummaryResponse;
 import com.nhatbui.digital_wallet.enums.WalletStatus;
-import com.nhatbui.digital_wallet.service.WalletService;
+import com.nhatbui.digital_wallet.service.wallet.WalletService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
