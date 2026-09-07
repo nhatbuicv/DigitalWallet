@@ -22,7 +22,6 @@ import java.util.UUID;
 @RequestMapping("/admin/users")
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('ADMIN')")
-@Tag(name = "Admin - User Management", description = "Quản lý người dùng (chỉ dành cho ADMIN)")
 public class AdminUserController {
 
     private final AdminUserService adminUserService;
