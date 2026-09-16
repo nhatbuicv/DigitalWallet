@@ -47,6 +47,9 @@ class AdminUserServiceImplTest {
     @Mock
     private UserMapper userMapper;
 
+    @Mock
+    private com.nhatbui.digital_wallet.service.audit.AuditService auditService;
+
     private AdminUserServiceImpl adminUserService;
 
     private static final UUID USER_UID = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
@@ -55,7 +58,7 @@ class AdminUserServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        adminUserService = new AdminUserServiceImpl(userRepository, walletRepository, userMapper);
+        adminUserService = new AdminUserServiceImpl(userRepository, walletRepository, userMapper, auditService);
 
         testUser = User.builder()
                 .uid(USER_UID)

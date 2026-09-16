@@ -36,6 +36,8 @@ public class WalletAdminResponse {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Ho_Chi_Minh")
     private Instant closedAt;
 
+    private String closedReason;
+
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Ho_Chi_Minh")
     private Instant createdAt;
 
@@ -46,4 +48,6 @@ public class WalletAdminResponse {
     private String userFullName;
     private String userPhone;
     private String userEmail;
+
+    private Integer version;
 }

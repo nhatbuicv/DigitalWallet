@@ -385,6 +385,7 @@ Migrations are managed by **Flyway** and stored under `src/main/resources/db/`.
 | `GET` | `/admin/users/{uid}` | Get user detail with wallet summary | `ADMIN` |
 | `PATCH` | `/admin/users/{uid}/status?status=` | Change a user's status | `ADMIN` |
 | `PATCH` | `/admin/users/{uid}/role?role=` | Change a user's role | `ADMIN` |
+| `GET` | `/admin/audit-logs` | List admin audit logs (filter by `actorUid`, `action`, `targetType`, `targetUid`, `fromDate`, `toDate`) | `ADMIN` |
 
 ### Sample Request — Login
 
