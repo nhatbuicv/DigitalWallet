@@ -227,3 +227,5 @@ CREATE TABLE IF NOT EXISTS public.password_reset_tokens (
 
 CREATE INDEX IF NOT EXISTS idx_password_reset_token_hash ON public.password_reset_tokens(token_hash);
 CREATE INDEX IF NOT EXISTS idx_password_reset_user ON public.password_reset_tokens(user_uid);
+
+

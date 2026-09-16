@@ -1,12 +1,14 @@
 package com.nhatbui.digital_wallet.controller;
 
 import com.nhatbui.digital_wallet.dto.request.admin.WalletSearchRequest;
+import com.nhatbui.digital_wallet.dto.request.wallet.WalletStatusRequest;
 import com.nhatbui.digital_wallet.dto.response.admin.WalletAdminResponse;
 import com.nhatbui.digital_wallet.dto.response.common.ApiResponse;
 import com.nhatbui.digital_wallet.dto.response.common.PageResponse;
 import com.nhatbui.digital_wallet.enums.WalletStatus;
 import com.nhatbui.digital_wallet.enums.WalletType;
 import com.nhatbui.digital_wallet.service.admin.AdminWalletService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -60,5 +62,23 @@ public class AdminWalletController {
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(adminWalletService.getWalletDetail(walletUid));
+    }
+
+    @PatchMapping("/{walletUid}/freeze")
+    public ResponseEntity<ApiResponse<WalletAdminResponse>> freezeWallet(
+            @PathVariable UUID walletUid,
+            @RequestBody @Valid WalletStatusRequest statusRequest) {
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(adminWalletService.freezeWallet(walletUid, statusRequest));
+    }
+
+    @PatchMapping("/{walletUid}/unfreeze")
+    public ResponseEntity<ApiResponse<WalletAdminResponse>> unfreezeWallet(
+            @PathVariable UUID walletUid,
+            @RequestBody @Valid WalletStatusRequest statusRequest) {
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(adminWalletService.unfreezeWallet(walletUid, statusRequest));
     }
 }
