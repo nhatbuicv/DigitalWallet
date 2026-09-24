@@ -1,10 +1,8 @@
 package com.nhatbui.digital_wallet;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
-class DigitalWalletApplicationTests {
+class DigitalWalletApplicationTests extends AbstractIntegrationTest {
 
 	@Test
 	void contextLoads() {

@@ -423,12 +423,19 @@ curl -X POST http://localhost:8080/auth/login \
 ### Build & Test
 
 ```bash
-# Run all tests
+# Run all tests (unit + Testcontainers integration tests, needs Docker running)
 ./mvnw test
+
+# Only the Postgres + Redis smoke test
+./mvnw test -Dtest=PostgresRedisSmokeTest
 
 # Build without tests
 ./mvnw clean package -DskipTests
 ```
+
+> Integration tests use **Testcontainers** (real PostgreSQL + Redis via
+> `@ServiceConnection`, see `AbstractIntegrationTest`). Details and troubleshooting:
+> [`docs/local-test.md`](docs/local-test.md).
 
 ### Profiles
 
@@ -479,7 +486,7 @@ All errors are centralized via `GlobalExceptionHandler` (`@RestControllerAdvice`
 - [ ] Add CI/CD pipeline with GitHub Actions (build, test, Docker image)
 - [ ] Containerize the application with a multi-stage Dockerfile
 - [ ] Extract auth and wallet modules into microservices when scale demands
-- [ ] Add integration tests with Testcontainers (PostgreSQL + Redis)
+- [x] Add integration tests with Testcontainers (PostgreSQL + Redis) — see `docs/local-test.md`
 - [ ] Support multi-currency conversion with exchange-rate service
 
 ---
