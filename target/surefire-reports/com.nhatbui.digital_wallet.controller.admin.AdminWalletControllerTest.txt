@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.nhatbui.digital_wallet.controller.admin.AdminWalletControllerTest
+-------------------------------------------------------------------------------
+Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.725 s -- in com.nhatbui.digital_wallet.controller.admin.AdminWalletControllerTest
