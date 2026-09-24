@@ -1,0 +1,9 @@
+com\nhatbui\digital_wallet\AbstractIntegrationTest.class
+com\nhatbui\digital_wallet\DigitalWalletApplicationTests.class
+com\nhatbui\digital_wallet\service\admin\AdminUserServiceImplTest.class
+com\nhatbui\digital_wallet\service\admin\AdminWalletServiceImplTest.class
+com\nhatbui\digital_wallet\controller\admin\AdminAuditControllerTest.class
+com\nhatbui\digital_wallet\controller\admin\AdminWalletControllerTest.class
+com\nhatbui\digital_wallet\controller\admin\AdminUserControllerTest.class
+com\nhatbui\digital_wallet\PostgresRedisSmokeTest.class
+com\nhatbui\digital_wallet\config\TestSecurityConfig.class

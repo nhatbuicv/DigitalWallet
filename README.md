@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Digital Wallet
 
 ![Java](https://img.shields.io/badge/Java-21-orange?logo=openjdk&logoColor=white)
@@ -496,3 +497,6 @@ All errors are centralized via `GlobalExceptionHandler` (`@RestControllerAdvice`
 This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
 
 > **Assumption:** No `LICENSE` file currently exists in the repository. The MIT license is assumed as a sensible default for an open-source project. Replace with your preferred license if needed.
+=======
+# Digital-Banking
+>>>>>>> origin/main
