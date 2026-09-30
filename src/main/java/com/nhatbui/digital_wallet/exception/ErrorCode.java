@@ -26,6 +26,8 @@ public enum ErrorCode {
     INVALID_PHONE_FORMAT   (1009, "Invalid phone number format",                       HttpStatus.BAD_REQUEST),
     INVALID_EMAIL_FORMAT   (1010, "Invalid email format",                              HttpStatus.BAD_REQUEST),
     CLIENT_TYPE_NOT_ALLOWED(1011, "This client type is not allowed for your account",  HttpStatus.FORBIDDEN),
+    OTP_RESEND_COOLDOWN      (1012, "Please wait 60 seconds before requesting a new OTP", HttpStatus.TOO_MANY_REQUESTS),
+    OTP_ATTEMPT_LIMIT_EXCEEDED(1013, "Too many incorrect OTP attempts. Please try again in 10 minutes", HttpStatus.TOO_MANY_REQUESTS),
 
     // ─── USER MODULE (1020 - 1049) ────────────────────────────────────────
     REGISTRATION_FAILED    (1020, "Registration failed. Please check your information or contact support", HttpStatus.CONFLICT),
