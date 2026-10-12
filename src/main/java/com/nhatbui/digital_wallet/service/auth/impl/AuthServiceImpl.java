@@ -26,6 +26,7 @@ import com.nhatbui.digital_wallet.service.wallet.WalletService;
 import com.nhatbui.digital_wallet.service.auth.AuthService;
 import com.nhatbui.digital_wallet.service.auth.LoginAttemptService;
 import com.nhatbui.digital_wallet.service.auth.RateLimitService;
+import com.nhatbui.digital_wallet.service.auth.TokenBlacklistService;
 import com.nhatbui.digital_wallet.service.notification.EmailService;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.MACSigner;
@@ -66,6 +67,7 @@ public class  AuthServiceImpl implements AuthService {
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final EmailService emailService;
     private final SecurityUtils securityUtils;
+    private final TokenBlacklistService tokenBlacklistService;
 
     @Value("${jwt.signerKey}")
     private String signerKey;
@@ -167,22 +169,22 @@ public class  AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public ApiResponse<TokenRefreshResponse> refreshToken(RefreshTokenRequest request) throws ParseException, JOSEException {
-        var signedJWT = verifyToken(request.getRefreshToken(), "refresh");
+    public ApiResponse<TokenRefreshResponse> refreshToken(RefreshTokenRequest refreshRequest) throws ParseException, JOSEException {
+        var signedRefreshToken = verifyToken(refreshRequest.getRefreshToken(), "refresh");
 
-        String jit = signedJWT.getJWTClaimsSet().getJWTID();
-        String userId = signedJWT.getJWTClaimsSet().getSubject();
+        String refreshTokenId = signedRefreshToken.getJWTClaimsSet().getJWTID();
+        String refreshTokenUserId = signedRefreshToken.getJWTClaimsSet().getSubject();
 
-        RefreshToken oldRefreshToken = refreshTokenRepository.findById(UUID.fromString(jit))
+        RefreshToken oldRefreshToken = refreshTokenRepository.findById(UUID.fromString(refreshTokenId))
                 .orElseThrow(() -> new AppException(ErrorCode.UNAUTHENTICATED));
 
-        User user = userRepository.findById(UUID.fromString(userId))
+        User tokenOwner = userRepository.findById(UUID.fromString(refreshTokenUserId))
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
         refreshTokenRepository.delete(oldRefreshToken);
 
-        String accessToken = generateAccessToken(user);
-        String newRefreshToken = generateRefreshToken(user, oldRefreshToken.getDeviceId(), oldRefreshToken.getDeviceName());
+        String accessToken = generateAccessToken(tokenOwner);
+        String newRefreshToken = generateRefreshToken(tokenOwner, oldRefreshToken.getDeviceId(), oldRefreshToken.getDeviceName());
 
         return ApiResponse.<TokenRefreshResponse>builder()
                 .message("Token refreshed successfully")
@@ -199,10 +201,11 @@ public class  AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     @PreAuthorize("isAuthenticated()")
-    public ApiResponse<Void> logout(RefreshTokenRequest request) throws ParseException, JOSEException {
-            var signedJWT = verifyToken(request.getRefreshToken(), "refresh");
-            String jti = signedJWT.getJWTClaimsSet().getJWTID();
-            refreshTokenRepository.deleteById(UUID.fromString(jti));
+    public ApiResponse<Void> logout(RefreshTokenRequest logoutRequest) throws ParseException, JOSEException {
+            var signedRefreshToken = verifyToken(logoutRequest.getRefreshToken(), "refresh");
+            String refreshTokenId = signedRefreshToken.getJWTClaimsSet().getJWTID();
+            refreshTokenRepository.deleteById(UUID.fromString(refreshTokenId));
+            blacklistCurrentAccessToken();
 
         return ApiResponse.<Void>builder()
                 .message("Đăng xuất thành công")
@@ -213,10 +216,15 @@ public class  AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     @PreAuthorize("isAuthenticated()")
-    public ApiResponse<Void> logoutAll(RefreshTokenRequest request) throws ParseException, JOSEException {
-            var signedJWT = verifyToken(request.getRefreshToken(), "refresh");
-            String userId = signedJWT.getJWTClaimsSet().getSubject();
-            refreshTokenRepository.deleteByUserUid(UUID.fromString(userId));
+    public ApiResponse<Void> logoutAll(RefreshTokenRequest logoutRequest) throws ParseException, JOSEException {
+            var signedRefreshToken = verifyToken(logoutRequest.getRefreshToken(), "refresh");
+            UUID currentUserId = UUID.fromString(signedRefreshToken.getJWTClaimsSet().getSubject());
+            refreshTokenRepository.deleteByUserUid(currentUserId);
+            User currentUser = userRepository.findById(currentUserId)
+                    .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+            currentUser.setTokenVersion(currentUser.getTokenVersion() + 1);
+            userRepository.save(currentUser);
+            blacklistCurrentAccessToken();
 
         return ApiResponse.<Void>builder()
                 .message("Đăng xuất tất cả thiết bị thành công")
@@ -239,6 +247,7 @@ public class  AuthServiceImpl implements AuthService {
                 .build();
     }
 
+    //Reset password
     @Override
     public ApiResponse<Void> requestPasswordReset(String email, String ipAddress) {
         rateLimitService.checkResetLimit(ipAddress);
@@ -267,25 +276,28 @@ public class  AuthServiceImpl implements AuthService {
                 .build();
     }
 
+    // Change password
     @Override
+    @Transactional
     public ApiResponse<Void> resetPassword(String rawToken, String newPassword) {
-        List<PasswordResetToken> passwordResetTokens = passwordResetTokenRepository.findByExpiresAtAfter(Instant.now());
+        List<PasswordResetToken> unexpiredResetTokens = passwordResetTokenRepository.findByExpiresAtAfter(Instant.now());
 
-        PasswordResetToken passwordResetToken = passwordResetTokens.stream()
-                .filter(passwordResetToken1 -> passwordEncoder.matches(rawToken,passwordResetToken1.getTokenHash()))
+        PasswordResetToken passwordResetToken = unexpiredResetTokens.stream()
+                .filter(unexpiredToken -> passwordEncoder.matches(rawToken, unexpiredToken.getTokenHash()))
                 .findFirst()
                 .orElseThrow(() -> new AppException(ErrorCode.INVALID_RESET_TOKEN));
 
-        if(passwordResetToken.isUsed()){
+        if (passwordResetToken.isUsed()) {
             throw new AppException(ErrorCode.TOKEN_ALREADY_USED);
         }
 
-        User user = userRepository.findByUid(passwordResetToken.getUserUid().getUid())
+        User currentUser = userRepository.findByUid(passwordResetToken.getUserUid().getUid())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        user.setPassword(passwordEncoder.encode(newPassword));
-        user.setTokenVersion(user.getTokenVersion() + 1);
-        userRepository.save(user);
+        currentUser.setPassword(passwordEncoder.encode(newPassword));
+        currentUser.setTokenVersion(currentUser.getTokenVersion() + 1);
+        userRepository.save(currentUser);
+        refreshTokenRepository.deleteByUserUid(currentUser.getUid());
 
         passwordResetToken.setUsed(true);
         passwordResetToken.setUsedAt(Instant.now());
@@ -445,6 +457,7 @@ public class  AuthServiceImpl implements AuthService {
                 .claim("role", user.getRole().toString())
                 .claim("status", user.getStatus().toString())
                 .claim("type", "access")
+                .claim("token_version", user.getTokenVersion())
                 .issuer("Digital Wallet")
                 .issueTime(new Date())
                 .expirationTime(Date.from(Instant.now().plusSeconds(accessTokenDuration)))
@@ -454,23 +467,23 @@ public class  AuthServiceImpl implements AuthService {
         return buildAndSignToken(claims);
     }
 
-    private String generateRefreshToken(User user, String deviceId, String deviceName) {
-        UUID jti = UUID.randomUUID();
+    private String generateRefreshToken(User tokenOwner, String deviceId, String deviceName) {
+        UUID refreshTokenId = UUID.randomUUID();
         Instant expiresAt = Instant.now().plusSeconds(refreshTokenDuration);
 
         JWTClaimsSet claims = new JWTClaimsSet.Builder()
-                .subject(String.valueOf(user.getUid()))
+                .subject(String.valueOf(tokenOwner.getUid()))
                 .claim("type", "refresh")
-                .claim("token_version", user.getTokenVersion())
+                .claim("token_version", tokenOwner.getTokenVersion())
                 .issuer("Digital Wallet")
                 .issueTime(new Date())
                 .expirationTime(Date.from(expiresAt))
-                .jwtID(String.valueOf(jti))
+                .jwtID(String.valueOf(refreshTokenId))
                 .build();
 
         refreshTokenRepository.save(RefreshToken.builder()
-                .jti(jti)
-                .user(user)
+                .jti(refreshTokenId)
+                .user(tokenOwner)
                 .deviceId(deviceId)
                 .deviceName(deviceName)
                 .expiresAt(expiresAt)
@@ -489,23 +502,50 @@ public class  AuthServiceImpl implements AuthService {
         }
     }
 
-    private SignedJWT verifyToken(String token , String expectedType) throws JOSEException, ParseException {
+    private SignedJWT verifyToken(String token, String expectedType) throws JOSEException, ParseException {
         JWSVerifier jwsVerifier = new MACVerifier(signerKey.getBytes());
-        SignedJWT signedJWT = SignedJWT.parse(token);
+        SignedJWT signedToken = SignedJWT.parse(token);
 
-        var verified = signedJWT.verify(jwsVerifier);
+        var signatureVerified = signedToken.verify(jwsVerifier);
 
-        Date expiryTime = signedJWT.getJWTClaimsSet().getExpirationTime();
+        Date expiryTime = signedToken.getJWTClaimsSet().getExpirationTime();
 
-        if (!verified || expiryTime.before(new Date())) {
+        if (!signatureVerified || expiryTime.before(new Date())) {
             throw new AppException(ErrorCode.TOKEN_EXPIRED);
         }
 
-        String type = signedJWT.getJWTClaimsSet().getStringClaim("type");
-        if (!expectedType.equals(type)) {
+        String tokenType = signedToken.getJWTClaimsSet().getStringClaim("type");
+        if (!expectedType.equals(tokenType)) {
             throw new AppException(ErrorCode.UNAUTHENTICATED);
         }
 
-        return signedJWT;
+        String revokedTokenId = signedToken.getJWTClaimsSet().getJWTID();
+        if (tokenBlacklistService.isTokenBlacklisted(revokedTokenId)) {
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
+        }
+
+        if ("refresh".equals(expectedType)) {
+            assertFreshTokenVersion(signedToken);
+        }
+
+        return signedToken;
+    }
+
+    private void assertFreshTokenVersion(SignedJWT signedRefreshToken) throws ParseException {
+        Integer refreshTokenVersion = signedRefreshToken.getJWTClaimsSet().getIntegerClaim("token_version");
+        UUID refreshTokenUserId = UUID.fromString(signedRefreshToken.getJWTClaimsSet().getSubject());
+        User tokenOwner = userRepository.findById(refreshTokenUserId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        if (refreshTokenVersion == null || refreshTokenVersion.intValue() != tokenOwner.getTokenVersion()) {
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
+        }
+    }
+
+    private void blacklistCurrentAccessToken() {
+        String currentAccessTokenId = securityUtils.getCurrentTokenId();
+        Instant accessTokenExpiresAt = securityUtils.getCurrentTokenExpiresAt();
+        if (currentAccessTokenId != null && accessTokenExpiresAt != null) {
+            tokenBlacklistService.blacklistToken(currentAccessTokenId, accessTokenExpiresAt);
+        }
     }
 }

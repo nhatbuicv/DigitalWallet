@@ -25,7 +25,9 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtTimestampValidator;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
@@ -35,6 +37,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
+import java.util.Optional;
 
 @Configuration
 @EnableWebSecurity
@@ -87,7 +90,7 @@ public class SecurityConfig {
 
         @Override
         public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException, ServletException {
-            ErrorCode errorCode = ErrorCode.UNAUTHORIZED;
+            ErrorCode errorCode = ErrorCode.UNAUTHENTICATED;
 
             response.setStatus(errorCode.getStatusCode().value());
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
@@ -104,12 +107,20 @@ public class SecurityConfig {
     }
 
     @Bean
-    public JwtDecoder jwtDecoder(){
-        SecretKey secretKey = new SecretKeySpec(SIGNER_KEY.getBytes() , "HmacSHA256");
+    public JwtDecoder jwtDecoder(Optional<SessionRevocationValidator> sessionRevocationValidator) {
+        SecretKey secretKey = new SecretKeySpec(SIGNER_KEY.getBytes(), "HmacSHA256");
 
-        return NimbusJwtDecoder
+        NimbusJwtDecoder jwtDecoder = NimbusJwtDecoder
                 .withSecretKey(secretKey)
                 .build();
+
+        sessionRevocationValidator.ifPresent(revocationValidator ->
+                jwtDecoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
+                        new JwtTimestampValidator(),
+                        revocationValidator
+                )));
+
+        return jwtDecoder;
     }
 
     @Bean
