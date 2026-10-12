@@ -10,7 +10,9 @@ import com.nhatbui.digital_wallet.exception.AppException;
 import com.nhatbui.digital_wallet.exception.ErrorCode;
 import com.nhatbui.digital_wallet.mapper.UserMapper;
 import com.nhatbui.digital_wallet.repository.ProvinceRepository;
+import com.nhatbui.digital_wallet.repository.RefreshTokenRepository;
 import com.nhatbui.digital_wallet.repository.UserRepository;
+import com.nhatbui.digital_wallet.service.auth.TokenBlacklistService;
 import com.nhatbui.digital_wallet.service.user.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -26,6 +28,8 @@ public class UserServiceImpl implements UserService {
     private final UserMapper userMapper;
     private final ProvinceRepository provinceRepository;
     private final UserRepository userRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
+    private final TokenBlacklistService tokenBlacklistService;
     private final PasswordEncoder passwordEncoder;
 
     @Override
@@ -77,24 +81,34 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     @PreAuthorize("isAuthenticated()")
-    public ApiResponse<Void> changePassword(ChangePasswordRequest request) {
-        User user = securityUtils.getCurrentUser();
+    public ApiResponse<Void> changePassword(ChangePasswordRequest passwordChangeRequest) {
+        User currentUser = securityUtils.getCurrentUser();
 
-        if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
+        if (!passwordEncoder.matches(passwordChangeRequest.getOldPassword(), currentUser.getPassword())) {
             throw new AppException(ErrorCode.PASSWORD_NOT_MATCH);
         }
 
-        if (passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+        if (passwordEncoder.matches(passwordChangeRequest.getPassword(), currentUser.getPassword())) {
             throw new AppException(ErrorCode.SAME_AS_OLD_PASSWORD);
         }
 
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setTokenVersion(user.getTokenVersion() + 1);
-        userRepository.save(user);
+        currentUser.setPassword(passwordEncoder.encode(passwordChangeRequest.getPassword()));
+        currentUser.setTokenVersion(currentUser.getTokenVersion() + 1);
+        userRepository.save(currentUser);
+        refreshTokenRepository.deleteByUserUid(currentUser.getUid());
+        blacklistCurrentAccessToken();
 
         return ApiResponse.<Void>builder()
                 .message("Đổi mật khẩu thành công")
                 .success(true)
                 .build();
+    }
+
+    private void blacklistCurrentAccessToken() {
+        String currentAccessTokenId = securityUtils.getCurrentTokenId();
+        var accessTokenExpiresAt = securityUtils.getCurrentTokenExpiresAt();
+        if (currentAccessTokenId != null && accessTokenExpiresAt != null) {
+            tokenBlacklistService.blacklistToken(currentAccessTokenId, accessTokenExpiresAt);
+        }
     }
 }
