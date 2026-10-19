@@ -1,5 +1,6 @@
 package com.nhatbui.digital_wallet.exception;
 
+import com.nhatbui.digital_wallet.enums.WalletStatus;
 import lombok.Getter;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -84,5 +85,14 @@ public enum ErrorCode {
         this.code = code;
         this.message = message;
         this.statusCode = statusCode;
+    }
+
+    public static ErrorCode fromWalletStatus(WalletStatus status) {
+        return switch (status) {
+            case FROZEN -> WALLET_FROZEN;
+            case CLOSED -> WALLET_CLOSED;
+            case SUSPENDED -> WALLET_SUSPENDED;
+            default -> WALLET_NOT_ACTIVE;
+        };
     }
 }
