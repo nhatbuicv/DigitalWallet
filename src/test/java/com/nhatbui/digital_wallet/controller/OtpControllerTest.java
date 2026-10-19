@@ -1,6 +1,9 @@
 package com.nhatbui.digital_wallet.controller;
 
+import com.nhatbui.digital_wallet.config.JwtAccessDeniedHandler;
+import com.nhatbui.digital_wallet.config.JwtAuthenticationEntryPoint;
 import com.nhatbui.digital_wallet.config.SecurityConfig;
+import com.nhatbui.digital_wallet.config.SecurityErrorWriter;
 import com.nhatbui.digital_wallet.exception.AppException;
 import com.nhatbui.digital_wallet.exception.ErrorCode;
 import com.nhatbui.digital_wallet.service.auth.OtpService;
@@ -22,7 +25,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(OtpController.class)
-@Import(SecurityConfig.class)
+@Import({SecurityConfig.class, JwtAuthenticationEntryPoint.class, JwtAccessDeniedHandler.class, SecurityErrorWriter.class})
 @TestPropertySource(properties = "jwt.signerKey=test-dummy-signer-key-must-be-at-least-32-bytes-long-0123456789")
 class OtpControllerTest {
 

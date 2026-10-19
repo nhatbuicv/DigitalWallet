@@ -12,12 +12,14 @@ import jakarta.mail.internet.MimeMessage;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class EmailServiceImpl implements EmailService {
 
@@ -50,7 +52,8 @@ public class EmailServiceImpl implements EmailService {
             javaMailSender.send(mimeMessage);
 
         } catch (MessagingException e) {
-            throw new RuntimeException("Lỗi gửi email: " + e.getMessage());
+            log.error("Failed to send reset-password email to {}", email, e);
+            throw new AppException(ErrorCode.INTERNAL_ERROR);
         }
     }
 
@@ -149,7 +152,8 @@ public class EmailServiceImpl implements EmailService {
             javaMailSender.send(message);
 
         } catch (MessagingException e) {
-            throw new RuntimeException("Không thể gửi email OTP.", e);
+            log.error("Failed to send OTP email to {}", to, e);
+            throw new AppException(ErrorCode.INTERNAL_ERROR);
         }
     }
 }

@@ -35,6 +35,7 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -48,6 +49,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class  AuthServiceImpl implements AuthService {
     private static final long LOCK_DURATION_SECONDS = 1800;
 
@@ -498,7 +500,8 @@ public class  AuthServiceImpl implements AuthService {
             jwsObject.sign(new MACSigner(signerKey.getBytes()));
             return jwsObject.serialize();
         } catch (JOSEException e) {
-            throw new RuntimeException("Failed to sign JWT", e);
+            log.error("Failed to sign JWT", e);
+            throw new AppException(ErrorCode.INTERNAL_ERROR);
         }
     }
 
