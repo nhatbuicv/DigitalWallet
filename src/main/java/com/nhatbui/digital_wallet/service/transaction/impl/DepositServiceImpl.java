@@ -7,6 +7,7 @@ import com.nhatbui.digital_wallet.dto.response.wallet.TransferResponse;
 import com.nhatbui.digital_wallet.entity.LedgerEntry;
 import com.nhatbui.digital_wallet.entity.Transaction;
 import com.nhatbui.digital_wallet.entity.Wallet;
+import com.nhatbui.digital_wallet.enums.CurrencyCode;
 import com.nhatbui.digital_wallet.enums.EntryType;
 import com.nhatbui.digital_wallet.enums.TransactionStatus;
 import com.nhatbui.digital_wallet.enums.TransactionType;
@@ -20,13 +21,16 @@ import com.nhatbui.digital_wallet.repository.WalletRepository;
 import com.nhatbui.digital_wallet.service.transaction.DepositService;
 import com.nhatbui.digital_wallet.service.wallet.SystemWalletService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.ConcurrencyFailureException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+
 @Service
 @RequiredArgsConstructor
 public class DepositServiceImpl implements DepositService {
@@ -37,27 +41,37 @@ public class DepositServiceImpl implements DepositService {
     private final WalletRepository walletRepository;
     private final SecurityUtils securityUtils;
     private final LedgerEntryRepository ledgerEntryRepository;
+    private final TransactionTemplate transactionTemplate;
 
-    @Transactional
     @Override
     @PreAuthorize("isAuthenticated()")
     public ApiResponse<TransferResponse> deposit(DepositRequest depositRequest) {
-        var existing = transactionRepository.findByIdempotencyKey(
-                depositRequest.getIdempotencyKey());
+        UUID userId = securityUtils.getCurrentUserId();
+
+        var existing = transactionRepository
+                .findByUserIdAndIdempotencyKey(userId, depositRequest.getIdempotencyKey());
 
         if (existing.isPresent()) {
-            return ApiResponse.<TransferResponse>builder()
-                    .success(true)
-                    .message("Nạp tiền thành công")
-                    .data(transferMapper.mapToTransferResponse(existing.get()))
-                    .build();
+            return successResponse(existing.get());
         }
 
+        try {
+            return transactionTemplate.execute(status -> doDeposit(depositRequest, userId));
+        } catch (DataIntegrityViolationException | ConcurrencyFailureException e) {
+            // Trùng key do request song song -> trả lại giao dịch đã ghi
+            var raced = transactionRepository
+                    .findByUserIdAndIdempotencyKey(userId, depositRequest.getIdempotencyKey());
+            if (raced.isPresent()) {
+                return successResponse(raced.get());
+            }
+            throw e;
+        }
+    }
+
+    private ApiResponse<TransferResponse> doDeposit(DepositRequest depositRequest, UUID userId) {
         if (depositRequest.getAmount() < 1000L) {
             throw new AppException(ErrorCode.INVALID_DEPOSIT_AMOUNT);
         }
-
-        UUID userId = securityUtils.getCurrentUserId();
 
         Wallet systemWallet = systemWalletService.getSystemWallet();
 
@@ -80,10 +94,13 @@ public class DepositServiceImpl implements DepositService {
         Instant now = Instant.now();
 
         Transaction transaction = Transaction.builder()
+                .referenceCode(generateReferenceCode())
+                .userId(userId)
                 .idempotencyKey(depositRequest.getIdempotencyKey())
                 .fromWallet(lockedSystem)
                 .toWallet(lockedUser)
                 .amount(depositRequest.getAmount())
+                .currency(CurrencyCode.VND)
                 .type(TransactionType.DEPOSIT)
                 .status(TransactionStatus.PROCESSING)
                 .description(depositRequest.getDescription())
@@ -92,14 +109,17 @@ public class DepositServiceImpl implements DepositService {
 
         transactionRepository.save(transaction);
 
-        Long systemBalanceAfter = lockedSystem.getBalance() - depositRequest.getAmount();
-        Long userBalanceAfter   = lockedUser.getBalance()   + depositRequest.getAmount();
+        Long systemBalanceBefore = lockedSystem.getBalance();
+        Long userBalanceBefore   = lockedUser.getBalance();
+        Long systemBalanceAfter  = systemBalanceBefore - depositRequest.getAmount();
+        Long userBalanceAfter    = userBalanceBefore   + depositRequest.getAmount();
 
         LedgerEntry debitSystem = LedgerEntry.builder()
                 .transaction(transaction)
                 .wallet(lockedSystem)
                 .entryType(EntryType.DEBIT)
                 .amount(depositRequest.getAmount())
+                .balanceBefore(systemBalanceBefore)
                 .balanceAfter(systemBalanceAfter)
                 .createdAt(now)
                 .build();
@@ -109,6 +129,7 @@ public class DepositServiceImpl implements DepositService {
                 .wallet(lockedUser)
                 .entryType(EntryType.CREDIT)
                 .amount(depositRequest.getAmount())
+                .balanceBefore(userBalanceBefore)
                 .balanceAfter(userBalanceAfter)
                 .createdAt(now)
                 .build();
@@ -127,6 +148,10 @@ public class DepositServiceImpl implements DepositService {
 
         transactionRepository.save(transaction);
 
+        return successResponse(transaction);
+    }
+
+    private ApiResponse<TransferResponse> successResponse(Transaction transaction) {
         return ApiResponse.<TransferResponse>builder()
                 .success(true)
                 .message("Nạp tiền thành công")
@@ -134,6 +159,10 @@ public class DepositServiceImpl implements DepositService {
                 .build();
     }
 
+    private String generateReferenceCode() {
+        return "TXN" + Instant.now().toEpochMilli()
+                + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+    }
 
     private List<Wallet> lockInOrder(Wallet a, Wallet b) {
         boolean aFirst = a.getUid().compareTo(b.getUid()) < 0;

@@ -10,7 +10,9 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "transactions")
+@Table(name = "transactions", uniqueConstraints = @UniqueConstraint(
+        name = "uk_transaction_user_idempotency",
+        columnNames = {"user_id", "idempotency_key"}))
 @Getter
 @Setter
 @NoArgsConstructor
@@ -52,7 +54,10 @@ public class Transaction {
     @Column( length = 255)
     private String description;
 
-    @Column( unique = true, nullable = false, length = 64)
+    @Column(name = "user_id", nullable = false)
+    private UUID userId;
+
+    @Column( nullable = false, length = 64)
     private String idempotencyKey;
 
     @Column( nullable = false, updatable = false)

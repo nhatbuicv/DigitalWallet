@@ -7,6 +7,7 @@ import com.nhatbui.digital_wallet.dto.response.wallet.TransferResponse;
 import com.nhatbui.digital_wallet.entity.LedgerEntry;
 import com.nhatbui.digital_wallet.entity.Transaction;
 import com.nhatbui.digital_wallet.entity.Wallet;
+import com.nhatbui.digital_wallet.enums.CurrencyCode;
 import com.nhatbui.digital_wallet.enums.EntryType;
 import com.nhatbui.digital_wallet.enums.TransactionStatus;
 import com.nhatbui.digital_wallet.enums.TransactionType;
@@ -20,9 +21,11 @@ import com.nhatbui.digital_wallet.repository.WalletRepository;
 import com.nhatbui.digital_wallet.service.transaction.WithdrawService;
 import com.nhatbui.digital_wallet.service.wallet.SystemWalletService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.ConcurrencyFailureException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Instant;
 import java.util.List;
@@ -38,31 +41,42 @@ public class WithdrawServiceImpl implements WithdrawService {
     private final WalletRepository walletRepository;
     private final SecurityUtils securityUtils;
     private final LedgerEntryRepository ledgerEntryRepository;
+    private final TransactionTemplate transactionTemplate;
 
-    @Transactional
     @Override
     @PreAuthorize("isAuthenticated()")
     public ApiResponse<TransferResponse> withdraw(WithdrawRequest withdrawRequest) {
+        UUID userId = securityUtils.getCurrentUserId();
 
-        var existing = transactionRepository.findByIdempotencyKey(withdrawRequest.getIdempotencyKey());
+        var existing = transactionRepository
+                .findByUserIdAndIdempotencyKey(userId, withdrawRequest.getIdempotencyKey());
 
         if (existing.isPresent()) {
-            return ApiResponse.<TransferResponse>builder()
-                    .success(true)
-                    .message("Rút tiền thành công")
-                    .data(transferMapper.mapToTransferResponse(existing.get()))
-                    .build();
+            return successResponse(existing.get());
         }
 
+        try {
+            return transactionTemplate.execute(status -> doWithdraw(withdrawRequest, userId));
+        } catch (DataIntegrityViolationException | ConcurrencyFailureException e) {
+            // Trùng key do request song song -> trả lại giao dịch đã ghi
+            var raced = transactionRepository
+                    .findByUserIdAndIdempotencyKey(userId, withdrawRequest.getIdempotencyKey());
+            if (raced.isPresent()) {
+                return successResponse(raced.get());
+            }
+            throw e;
+        }
+    }
+
+    private ApiResponse<TransferResponse> doWithdraw(WithdrawRequest withdrawRequest, UUID userId) {
         if (withdrawRequest.getAmount() < 1000L) {
             throw new AppException(ErrorCode.INVALID_WITHDRAW_AMOUNT);
         }
 
-        UUID userId = securityUtils.getCurrentUserId();
-
         Wallet systemWallet = systemWalletService.getSystemWallet();
 
-        Wallet userWallet = walletRepository.findByWalletNumberAndUserUid(withdrawRequest.getWalletNumber(),userId)
+        Wallet userWallet = walletRepository
+                .findByWalletNumberAndUserUid(withdrawRequest.getWalletNumber(), userId)
                 .orElseThrow(() -> new AppException(ErrorCode.WALLET_NOT_FOUND));
 
         List<Wallet> locked = lockInOrder(systemWallet, userWallet);
@@ -81,10 +95,13 @@ public class WithdrawServiceImpl implements WithdrawService {
         Instant now = Instant.now();
 
         Transaction transaction = Transaction.builder()
+                .referenceCode(generateReferenceCode())
+                .userId(userId)
                 .idempotencyKey(withdrawRequest.getIdempotencyKey())
                 .fromWallet(lockedUser)
                 .toWallet(lockedSystem)
                 .amount(withdrawRequest.getAmount())
+                .currency(CurrencyCode.VND)
                 .type(TransactionType.WITHDRAW)
                 .status(TransactionStatus.PROCESSING)
                 .description(withdrawRequest.getDescription())
@@ -93,14 +110,17 @@ public class WithdrawServiceImpl implements WithdrawService {
 
         transactionRepository.save(transaction);
 
-        Long userBalanceAfter   = lockedUser.getBalance()   - withdrawRequest.getAmount();
-        Long systemBalanceAfter = lockedSystem.getBalance() + withdrawRequest.getAmount();
+        Long userBalanceBefore   = lockedUser.getBalance();
+        Long systemBalanceBefore = lockedSystem.getBalance();
+        Long userBalanceAfter    = userBalanceBefore   - withdrawRequest.getAmount();
+        Long systemBalanceAfter  = systemBalanceBefore + withdrawRequest.getAmount();
 
         LedgerEntry debitUser = LedgerEntry.builder()
                 .transaction(transaction)
                 .wallet(lockedUser)
                 .entryType(EntryType.DEBIT)
                 .amount(withdrawRequest.getAmount())
+                .balanceBefore(userBalanceBefore)
                 .balanceAfter(userBalanceAfter)
                 .createdAt(now)
                 .build();
@@ -110,6 +130,7 @@ public class WithdrawServiceImpl implements WithdrawService {
                 .wallet(lockedSystem)
                 .entryType(EntryType.CREDIT)
                 .amount(withdrawRequest.getAmount())
+                .balanceBefore(systemBalanceBefore)
                 .balanceAfter(systemBalanceAfter)
                 .createdAt(now)
                 .build();
@@ -117,10 +138,10 @@ public class WithdrawServiceImpl implements WithdrawService {
         ledgerEntryRepository.saveAll(List.of(debitUser, creditSystem));
 
         lockedUser.setBalance(userBalanceAfter);
-        lockedUser.setBalance(userBalanceAfter);
+        lockedUser.setAvailableBalance(userBalanceAfter);
 
         lockedSystem.setBalance(systemBalanceAfter);
-        lockedUser.setAvailableBalance(userBalanceAfter);
+        lockedSystem.setAvailableBalance(systemBalanceAfter);
 
         walletRepository.saveAll(List.of(lockedUser, lockedSystem));
 
@@ -129,6 +150,10 @@ public class WithdrawServiceImpl implements WithdrawService {
 
         transactionRepository.save(transaction);
 
+        return successResponse(transaction);
+    }
+
+    private ApiResponse<TransferResponse> successResponse(Transaction transaction) {
         return ApiResponse.<TransferResponse>builder()
                 .success(true)
                 .message("Rút tiền thành công")
@@ -136,6 +161,10 @@ public class WithdrawServiceImpl implements WithdrawService {
                 .build();
     }
 
+    private String generateReferenceCode() {
+        return "TXN" + Instant.now().toEpochMilli()
+                + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+    }
 
     private List<Wallet> lockInOrder(Wallet a, Wallet b) {
         boolean aFirst = a.getUid().compareTo(b.getUid()) < 0;
