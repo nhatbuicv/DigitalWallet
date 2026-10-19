@@ -6,7 +6,6 @@ import com.nhatbui.digital_wallet.dto.response.common.ApiResponse;
 import com.nhatbui.digital_wallet.dto.response.wallet.TransferResponse;
 import com.nhatbui.digital_wallet.entity.LedgerEntry;
 import com.nhatbui.digital_wallet.entity.Transaction;
-import com.nhatbui.digital_wallet.entity.User;
 import com.nhatbui.digital_wallet.entity.Wallet;
 import com.nhatbui.digital_wallet.enums.*;
 import com.nhatbui.digital_wallet.exception.AppException;
@@ -17,9 +16,11 @@ import com.nhatbui.digital_wallet.repository.TransactionRepository;
 import com.nhatbui.digital_wallet.repository.WalletRepository;
 import com.nhatbui.digital_wallet.service.transaction.TransferService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.ConcurrencyFailureException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -33,27 +34,38 @@ public class TransferServiceImpl implements TransferService {
     private final TransactionRepository transactionRepository;
     private final LedgerEntryRepository ledgerEntryRepository;
     private final TransferMapper transferMapper;
+    private final TransactionTemplate transactionTemplate;
 
     @Override
-    @Transactional
     @PreAuthorize("isAuthenticated()")
     public ApiResponse<TransferResponse> transfer(TransferRequest request) {
+        UUID userId = securityUtils.getCurrentUserId();
 
-        var existing = transactionRepository.findByIdempotencyKey(request.getIdempotencyKey());
+        var existing = transactionRepository
+                .findByUserIdAndIdempotencyKey(userId, request.getIdempotencyKey());
+
         if (existing.isPresent()) {
-            return ApiResponse.<TransferResponse>builder()
-                    .success(true)
-                    .message("Chuyển tiền thành công")
-                    .data(transferMapper.mapToTransferResponse(existing.get()))
-                    .build();
+            return successResponse(existing.get());
         }
 
+        try {
+            return transactionTemplate.execute(status -> doTransfer(request, userId));
+        } catch (DataIntegrityViolationException | ConcurrencyFailureException e) {
+            // Trùng key do request song song -> trả lại giao dịch đã ghi
+            var raced = transactionRepository
+                    .findByUserIdAndIdempotencyKey(userId, request.getIdempotencyKey());
+            if (raced.isPresent()) {
+                return successResponse(raced.get());
+            }
+            throw e;
+        }
+    }
+
+    private ApiResponse<TransferResponse> doTransfer(TransferRequest request, UUID userId) {
         if (request.getFromWalletNumber().equals(request.getToWalletNumber()))
             throw new AppException(ErrorCode.TRANSFER_SAME_WALLET);
 
-        User user = securityUtils.getCurrentUser();
-
-        Wallet fromWallet = walletRepository.findByWalletNumberAndUserUid(request.getFromWalletNumber(), user.getUid())
+        Wallet fromWallet = walletRepository.findByWalletNumberAndUserUid(request.getFromWalletNumber(), userId)
                 .orElseThrow(() -> new AppException(ErrorCode.WALLET_NOT_FOUND));
 
         Wallet toWallet = walletRepository.findByWalletNumber(request.getToWalletNumber())
@@ -84,6 +96,7 @@ public class TransferServiceImpl implements TransferService {
 
         Transaction transaction = Transaction.builder()
                 .referenceCode(generateReferenceCode())
+                .userId(userId)
                 .fromWallet(fromWallet)
                 .toWallet(toWallet)
                 .amount(request.getAmount())
@@ -132,6 +145,10 @@ public class TransferServiceImpl implements TransferService {
         transaction.setCompletedAt(Instant.now());
         transactionRepository.save(transaction);
 
+        return successResponse(transaction);
+    }
+
+    private ApiResponse<TransferResponse> successResponse(Transaction transaction) {
         return ApiResponse.<TransferResponse>builder()
                 .success(true)
                 .message("Chuyển tiền thành công")
