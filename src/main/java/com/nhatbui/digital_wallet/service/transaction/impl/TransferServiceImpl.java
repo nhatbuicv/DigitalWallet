@@ -105,6 +105,7 @@ public class TransferServiceImpl implements TransferService {
                 .status(TransactionStatus.PENDING)
                 .description(generateDescription(fromWallet, request))
                 .idempotencyKey(request.getIdempotencyKey())
+                .createdAt(Instant.now())
                 .build();
 
         transactionRepository.save(transaction);
