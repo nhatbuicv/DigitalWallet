@@ -14,6 +14,7 @@ import com.nhatbui.digital_wallet.enums.TransactionType;
 import com.nhatbui.digital_wallet.enums.WalletStatus;
 import com.nhatbui.digital_wallet.exception.AppException;
 import com.nhatbui.digital_wallet.exception.ErrorCode;
+import com.nhatbui.digital_wallet.generator.ReferenceCodeGenerator;
 import com.nhatbui.digital_wallet.mapper.TransferMapper;
 import com.nhatbui.digital_wallet.repository.LedgerEntryRepository;
 import com.nhatbui.digital_wallet.repository.TransactionRepository;
@@ -42,6 +43,7 @@ public class WithdrawServiceImpl implements WithdrawService {
     private final SecurityUtils securityUtils;
     private final LedgerEntryRepository ledgerEntryRepository;
     private final TransactionTemplate transactionTemplate;
+    private final TransactionFactory transactionFactory;
 
     @Override
     @PreAuthorize("isAuthenticated()")
@@ -94,26 +96,16 @@ public class WithdrawServiceImpl implements WithdrawService {
 
         Instant now = Instant.now();
 
-        Transaction transaction = Transaction.builder()
-                .referenceCode(generateReferenceCode())
-                .userId(userId)
-                .idempotencyKey(withdrawRequest.getIdempotencyKey())
-                .fromWallet(lockedUser)
-                .toWallet(lockedSystem)
-                .amount(withdrawRequest.getAmount())
-                .currency(CurrencyCode.VND)
-                .type(TransactionType.WITHDRAW)
-                .status(TransactionStatus.PROCESSING)
-                .description(withdrawRequest.getDescription())
-                .createdAt(now)
-                .build();
+        Transaction transaction = transactionFactory.createWithdraw(
+                userId, lockedUser, lockedSystem, withdrawRequest.getAmount(),
+                withdrawRequest.getIdempotencyKey(), withdrawRequest.getDescription());
 
         transactionRepository.save(transaction);
 
-        Long userBalanceBefore   = lockedUser.getBalance();
+        Long userBalanceBefore = lockedUser.getBalance();
         Long systemBalanceBefore = lockedSystem.getBalance();
-        Long userBalanceAfter    = userBalanceBefore   - withdrawRequest.getAmount();
-        Long systemBalanceAfter  = systemBalanceBefore + withdrawRequest.getAmount();
+        Long userBalanceAfter = userBalanceBefore - withdrawRequest.getAmount();
+        Long systemBalanceAfter = systemBalanceBefore + withdrawRequest.getAmount();
 
         LedgerEntry debitUser = LedgerEntry.builder()
                 .transaction(transaction)
@@ -161,14 +153,9 @@ public class WithdrawServiceImpl implements WithdrawService {
                 .build();
     }
 
-    private String generateReferenceCode() {
-        return "TXN" + Instant.now().toEpochMilli()
-                + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
-    }
-
     private List<Wallet> lockInOrder(Wallet a, Wallet b) {
         boolean aFirst = a.getUid().compareTo(b.getUid()) < 0;
-        Wallet first  = aFirst ? a : b;
+        Wallet first = aFirst ? a : b;
         Wallet second = aFirst ? b : a;
 
         Wallet lockedFirst = walletRepository.findByWalletNumberWithLock(first.getWalletNumber())
