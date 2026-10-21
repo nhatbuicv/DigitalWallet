@@ -88,7 +88,7 @@ public class DepositServiceImpl implements DepositService {
                 ? locked.get(0) : locked.get(1);
 
         if (lockedUser.getStatus() != WalletStatus.ACTIVE) {
-            throw new AppException(ErrorCode.WALLET_NOT_ACTIVE);
+            throw new AppException(ErrorCode.fromWalletStatus(lockedUser.getStatus()));
         }
 
         Instant now = Instant.now();

@@ -86,10 +86,10 @@ public class TransferServiceImpl implements TransferService {
         toWallet   = lockedFirst.getUid().equals(toUid)   ? lockedFirst : lockedSecond;
 
         if (fromWallet.getStatus() != WalletStatus.ACTIVE)
-            throw new AppException(ErrorCode.WALLET_NOT_FOUND);
+            throw new AppException(ErrorCode.fromWalletStatus(fromWallet.getStatus()));
 
         if (toWallet.getStatus() != WalletStatus.ACTIVE)
-            throw new AppException(ErrorCode.WALLET_NOT_FOUND);
+            throw new AppException(ErrorCode.fromWalletStatus(toWallet.getStatus()));
 
         if (fromWallet.getBalance().compareTo(request.getAmount()) < 0)
             throw new AppException(ErrorCode.INSUFFICIENT_BALANCE);
