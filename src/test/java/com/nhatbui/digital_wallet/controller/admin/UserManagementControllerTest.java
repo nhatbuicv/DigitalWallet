@@ -1,7 +1,7 @@
 package com.nhatbui.digital_wallet.controller.admin;
 
 import com.nhatbui.digital_wallet.config.TestSecurityConfig;
-import com.nhatbui.digital_wallet.controller.AdminUserController;
+import com.nhatbui.digital_wallet.controller.UserManagementController;
 import com.nhatbui.digital_wallet.dto.request.admin.UserSearchRequest;
 import com.nhatbui.digital_wallet.dto.response.admin.UserAdminResponse;
 import com.nhatbui.digital_wallet.dto.response.common.ApiResponse;
@@ -28,9 +28,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(AdminUserController.class)
+@WebMvcTest(UserManagementController.class)
 @Import(TestSecurityConfig.class)
-class AdminUserControllerTest {
+class UserManagementControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -137,6 +137,32 @@ class AdminUserControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "STAFF")
+    void getUsers_withStaffRole_shouldReturn200() throws Exception {
+        PageResponse<UserAdminResponse> pageResponse = PageResponse.<UserAdminResponse>builder()
+                .currentPage(0)
+                .totalPage(1)
+                .pageSize(20)
+                .totalElements(1)
+                .data(java.util.List.of(UserAdminResponse.builder()
+                        .uid(USER_UID.toString())
+                        .fullName("Test User")
+                        .email("test@example.com")
+                        .phone("0912345678")
+                        .status("ACTIVE")
+                        .role("USER")
+                        .build()))
+                .build();
+
+        when(adminUserService.getUsers(any(), any(UserSearchRequest.class))).thenReturn(pageResponse);
+
+        mockMvc.perform(get("/admin/users"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.totalElements").value(1));
+    }
+
+    @Test
     @WithMockUser(roles = "ADMIN")
     void getUserDetail_withAdminRole_shouldReturn200() throws Exception {
         UserAdminResponse response = UserAdminResponse.builder()
@@ -172,6 +198,31 @@ class AdminUserControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "STAFF")
+    void getUserDetail_withStaffRole_shouldReturn200() throws Exception {
+        UserAdminResponse response = UserAdminResponse.builder()
+                .uid(USER_UID.toString())
+                .fullName("Test User")
+                .email("test@example.com")
+                .phone("0912345678")
+                .status("ACTIVE")
+                .role("USER")
+                .build();
+
+        when(adminUserService.getUserDetail(USER_UID)).thenReturn(
+                ApiResponse.<UserAdminResponse>builder()
+                        .message("Lấy thông tin người dùng thành công")
+                        .success(true)
+                        .data(response)
+                        .build());
+
+        mockMvc.perform(get("/admin/users/{uid}", USER_UID))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.uid").value(USER_UID.toString()));
+    }
+
+    @Test
     @WithMockUser(roles = "ADMIN")
     void changeUserStatus_withAdminRole_shouldReturn200() throws Exception {
         when(adminUserService.changeUserStatus(eq(USER_UID), eq(UserStatus.LOCKED))).thenReturn(
@@ -197,6 +248,15 @@ class AdminUserControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "STAFF")
+    void changeUserStatus_withStaffRole_shouldReturn403() throws Exception {
+        mockMvc.perform(patch("/admin/users/{uid}/status", USER_UID)
+                        .param("status", "LOCKED")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     @WithMockUser(roles = "ADMIN")
     void changeUserRole_withAdminRole_shouldReturn200() throws Exception {
         when(adminUserService.changeUserRole(eq(USER_UID), eq(UserRole.MANAGER))).thenReturn(
@@ -215,6 +275,15 @@ class AdminUserControllerTest {
     @Test
     @WithMockUser(roles = "USER")
     void changeUserRole_withUserRole_shouldReturn403() throws Exception {
+        mockMvc.perform(patch("/admin/users/{uid}/role", USER_UID)
+                        .param("role", "MANAGER")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "STAFF")
+    void changeUserRole_withStaffRole_shouldReturn403() throws Exception {
         mockMvc.perform(patch("/admin/users/{uid}/role", USER_UID)
                         .param("role", "MANAGER")
                         .contentType(MediaType.APPLICATION_JSON))

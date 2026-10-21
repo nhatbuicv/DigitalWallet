@@ -22,12 +22,12 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/admin/wallets")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
-public class AdminWalletController {
+public class AuditManagementController {
 
     private final AdminWalletService adminWalletService;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<ApiResponse<PageResponse<WalletAdminResponse>>> getWallets(
             @PageableDefault(size = 20) Pageable pageable,
             @RequestParam(required = false) String walletNumber,
@@ -58,6 +58,7 @@ public class AdminWalletController {
     }
 
     @GetMapping("/{walletUid}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<ApiResponse<WalletAdminResponse>> getWalletDetail(@PathVariable UUID walletUid) {
         return ResponseEntity
                 .status(HttpStatus.OK)
@@ -65,6 +66,7 @@ public class AdminWalletController {
     }
 
     @PatchMapping("/{walletUid}/freeze")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<WalletAdminResponse>> freezeWallet(
             @PathVariable UUID walletUid,
             @RequestBody @Valid WalletStatusRequest statusRequest) {
@@ -74,6 +76,7 @@ public class AdminWalletController {
     }
 
     @PatchMapping("/{walletUid}/unfreeze")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<WalletAdminResponse>> unfreezeWallet(
             @PathVariable UUID walletUid,
             @RequestBody @Valid WalletStatusRequest statusRequest) {

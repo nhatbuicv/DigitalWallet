@@ -11,7 +11,7 @@ import java.util.UUID;
 @Getter
 @Setter
 @Builder
-public class AuditLogResponse {
+public class AuditLogAdminResponse {
 
     private UUID uid;
     private UUID actorUid;

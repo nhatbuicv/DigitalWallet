@@ -4,6 +4,7 @@ import com.nhatbui.digital_wallet.config.SecurityUtils;
 import com.nhatbui.digital_wallet.dto.request.wallet.WithdrawRequest;
 import com.nhatbui.digital_wallet.dto.response.wallet.TransferResponse;
 import com.nhatbui.digital_wallet.entity.LedgerEntry;
+import com.nhatbui.digital_wallet.entity.Transaction;
 import com.nhatbui.digital_wallet.entity.Wallet;
 import com.nhatbui.digital_wallet.enums.CurrencyCode;
 import com.nhatbui.digital_wallet.enums.EntryType;
@@ -13,6 +14,7 @@ import com.nhatbui.digital_wallet.mapper.TransferMapper;
 import com.nhatbui.digital_wallet.repository.LedgerEntryRepository;
 import com.nhatbui.digital_wallet.repository.TransactionRepository;
 import com.nhatbui.digital_wallet.repository.WalletRepository;
+import com.nhatbui.digital_wallet.service.transaction.impl.TransactionFactory;
 import com.nhatbui.digital_wallet.service.transaction.impl.WithdrawServiceImpl;
 import com.nhatbui.digital_wallet.service.wallet.SystemWalletService;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,6 +35,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -59,6 +62,7 @@ class WithdrawServiceImplTest {
     @Mock private SecurityUtils securityUtils;
     @Mock private LedgerEntryRepository ledgerEntryRepository;
     @Mock private TransactionTemplate transactionTemplate;
+    @Mock private TransactionFactory transactionFactory;
 
     private WithdrawServiceImpl withdrawService;
 
@@ -74,7 +78,8 @@ class WithdrawServiceImplTest {
                 walletRepository,
                 securityUtils,
                 ledgerEntryRepository,
-                transactionTemplate);
+                transactionTemplate,
+                transactionFactory);
 
         userWallet = wallet("999999999999", "User Wallet", USER_BALANCE);
         systemWallet = wallet("555555555555", "System Wallet", SYSTEM_BALANCE);
@@ -94,6 +99,8 @@ class WithdrawServiceImplTest {
         when(ledgerEntryRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(walletRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(transferMapper.mapToTransferResponse(any())).thenReturn(TransferResponse.builder().build());
+        when(transactionFactory.createWithdraw(any(), any(), any(), anyLong(), anyString(), any()))
+                .thenReturn(new Transaction());
 
         // TransactionTemplate.execute phải thực thi callback để chạy doWithdraw.
         when(transactionTemplate.execute(any())).thenAnswer(invocation -> {

@@ -2,8 +2,7 @@ package com.nhatbui.digital_wallet.controller.admin;
 
 import com.nhatbui.digital_wallet.config.TestSecurityConfig;
 import com.nhatbui.digital_wallet.controller.AdminAuditController;
-import com.nhatbui.digital_wallet.dto.response.admin.AuditLogResponse;
-import com.nhatbui.digital_wallet.dto.response.common.ApiResponse;
+import com.nhatbui.digital_wallet.dto.response.admin.AuditLogAdminResponse;
 import com.nhatbui.digital_wallet.dto.response.common.PageResponse;
 import com.nhatbui.digital_wallet.enums.AuditAction;
 import com.nhatbui.digital_wallet.enums.AuditTargetType;
@@ -40,7 +39,7 @@ class AdminAuditControllerTest {
     @Test
     @WithMockUser(roles = "ADMIN")
     void getAuditLogs_withAdminRole_shouldReturn200() throws Exception {
-        AuditLogResponse log = AuditLogResponse.builder()
+        AuditLogAdminResponse log = AuditLogAdminResponse.builder()
                 .uid(UUID.randomUUID())
                 .actorName("Admin")
                 .action(AuditAction.WALLET_FREEZE)
@@ -50,7 +49,7 @@ class AdminAuditControllerTest {
                 .createdAt(Instant.now())
                 .build();
 
-        PageResponse<AuditLogResponse> pageResponse = PageResponse.<AuditLogResponse>builder()
+        PageResponse<AuditLogAdminResponse> pageResponse = PageResponse.<AuditLogAdminResponse>builder()
                 .currentPage(0)
                 .totalPage(1)
                 .pageSize(20)
@@ -65,6 +64,35 @@ class AdminAuditControllerTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.totalElements").value(1))
                 .andExpect(jsonPath("$.data.data[0].action").value("WALLET_FREEZE"));
+    }
+
+    @Test
+    @WithMockUser(roles = "STAFF")
+    void getAuditLogs_withStaffRole_shouldReturn200() throws Exception {
+        AuditLogAdminResponse log = AuditLogAdminResponse.builder()
+                .uid(UUID.randomUUID())
+                .actorName("Staff")
+                .action(AuditAction.WALLET_FREEZE)
+                .targetType(AuditTargetType.WALLET)
+                .targetUid(TARGET_UID)
+                .targetIdentifier("123456789012")
+                .createdAt(Instant.now())
+                .build();
+
+        PageResponse<AuditLogAdminResponse> pageResponse = PageResponse.<AuditLogAdminResponse>builder()
+                .currentPage(0)
+                .totalPage(1)
+                .pageSize(20)
+                .totalElements(1)
+                .data(java.util.List.of(log))
+                .build();
+
+        when(adminAuditService.getAuditLogs(any(), any())).thenReturn(pageResponse);
+
+        mockMvc.perform(get("/admin/audit-logs"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.totalElements").value(1));
     }
 
     @Test

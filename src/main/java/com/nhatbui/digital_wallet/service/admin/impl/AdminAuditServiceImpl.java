@@ -1,7 +1,7 @@
 package com.nhatbui.digital_wallet.service.admin.impl;
 
 import com.nhatbui.digital_wallet.dto.request.admin.AuditLogSearchRequest;
-import com.nhatbui.digital_wallet.dto.response.admin.AuditLogResponse;
+import com.nhatbui.digital_wallet.dto.response.admin.AuditLogAdminResponse;
 import com.nhatbui.digital_wallet.dto.response.common.PageResponse;
 import com.nhatbui.digital_wallet.entity.AuditLog;
 import com.nhatbui.digital_wallet.repository.AuditLogRepository;
@@ -22,7 +22,7 @@ public class AdminAuditServiceImpl implements AdminAuditService {
 
     private final AuditLogRepository auditLogRepository;
 
-    private static final Function<AuditLog, AuditLogResponse> TO_RESPONSE = log -> AuditLogResponse.builder()
+    private static final Function<AuditLog, AuditLogAdminResponse> TO_RESPONSE = log -> AuditLogAdminResponse.builder()
             .uid(log.getUid())
             .actorUid(log.getActorUid())
             .actorName(log.getActorName())
@@ -36,7 +36,7 @@ public class AdminAuditServiceImpl implements AdminAuditService {
 
     @Override
     @PreAuthorize("hasRole('ADMIN')")
-    public PageResponse<AuditLogResponse> getAuditLogs(Pageable pageable, AuditLogSearchRequest searchRequest) {
+    public PageResponse<AuditLogAdminResponse> getAuditLogs(Pageable pageable, AuditLogSearchRequest searchRequest) {
         Specification<AuditLog> spec = AuditLogSpecification.buildSearchSpec(searchRequest);
         Page<AuditLog> page = auditLogRepository.findAll(spec, pageable);
         return PageResponse.from(page, TO_RESPONSE);

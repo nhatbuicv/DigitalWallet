@@ -1,7 +1,7 @@
 package com.nhatbui.digital_wallet.controller;
 
 import com.nhatbui.digital_wallet.dto.request.admin.AuditLogSearchRequest;
-import com.nhatbui.digital_wallet.dto.response.admin.AuditLogResponse;
+import com.nhatbui.digital_wallet.dto.response.admin.AuditLogAdminResponse;
 import com.nhatbui.digital_wallet.dto.response.common.ApiResponse;
 import com.nhatbui.digital_wallet.dto.response.common.PageResponse;
 import com.nhatbui.digital_wallet.enums.AuditAction;
@@ -22,13 +22,13 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/admin/audit-logs")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
 public class AdminAuditController {
 
     private final AdminAuditService adminAuditService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<PageResponse<AuditLogResponse>>> getAuditLogs(
+    public ResponseEntity<ApiResponse<PageResponse<AuditLogAdminResponse>>> getAuditLogs(
             @PageableDefault(size = 20) Pageable pageable,
             @RequestParam(required = false) UUID actorUid,
             @RequestParam(required = false) AuditAction action,
@@ -46,11 +46,11 @@ public class AdminAuditController {
                 .toDate(toDate)
                 .build();
 
-        PageResponse<AuditLogResponse> data = adminAuditService.getAuditLogs(pageable, searchRequest);
+        PageResponse<AuditLogAdminResponse> data = adminAuditService.getAuditLogs(pageable, searchRequest);
 
         return ResponseEntity
                 .status(HttpStatus.OK)
-                .body(ApiResponse.<PageResponse<AuditLogResponse>>builder()
+                .body(ApiResponse.<PageResponse<AuditLogAdminResponse>>builder()
                         .message("Lấy nhật ký kiểm toán thành công")
                         .success(true)
                         .data(data)

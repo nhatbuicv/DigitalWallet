@@ -7,7 +7,6 @@ import com.nhatbui.digital_wallet.dto.response.common.PageResponse;
 import com.nhatbui.digital_wallet.enums.UserRole;
 import com.nhatbui.digital_wallet.enums.UserStatus;
 import com.nhatbui.digital_wallet.service.admin.AdminUserService;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -21,12 +20,12 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/admin/users")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
-public class AdminUserController {
+public class UserManagementController {
 
     private final AdminUserService adminUserService;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<ApiResponse<PageResponse<UserAdminResponse>>> getUsers(
             @PageableDefault(size = 20) Pageable pageable,
             @RequestParam(required = false) String phone,
@@ -55,6 +54,7 @@ public class AdminUserController {
     }
 
     @GetMapping("/{uid}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<ApiResponse<UserAdminResponse>> getUserDetail(@PathVariable UUID uid) {
         return ResponseEntity
                 .status(HttpStatus.OK)
@@ -62,6 +62,7 @@ public class AdminUserController {
     }
 
     @PatchMapping("/{uid}/status")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> changeUserStatus(
             @PathVariable UUID uid,
             @RequestParam UserStatus status) {
@@ -71,6 +72,7 @@ public class AdminUserController {
     }
 
     @PatchMapping("/{uid}/role")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> changeUserRole(
             @PathVariable UUID uid,
             @RequestParam UserRole role) {
