@@ -10,6 +10,7 @@ import com.nhatbui.digital_wallet.entity.Wallet;
 import com.nhatbui.digital_wallet.enums.*;
 import com.nhatbui.digital_wallet.exception.AppException;
 import com.nhatbui.digital_wallet.exception.ErrorCode;
+import com.nhatbui.digital_wallet.generator.ReferenceCodeGenerator;
 import com.nhatbui.digital_wallet.mapper.TransferMapper;
 import com.nhatbui.digital_wallet.repository.LedgerEntryRepository;
 import com.nhatbui.digital_wallet.repository.TransactionRepository;
@@ -35,6 +36,7 @@ public class TransferServiceImpl implements TransferService {
     private final LedgerEntryRepository ledgerEntryRepository;
     private final TransferMapper transferMapper;
     private final TransactionTemplate transactionTemplate;
+    private final TransactionFactory transactionFactory;
 
     @Override
     @PreAuthorize("isAuthenticated()")
@@ -94,19 +96,9 @@ public class TransferServiceImpl implements TransferService {
         if (fromWallet.getBalance().compareTo(request.getAmount()) < 0)
             throw new AppException(ErrorCode.INSUFFICIENT_BALANCE);
 
-        Transaction transaction = Transaction.builder()
-                .referenceCode(generateReferenceCode())
-                .userId(userId)
-                .fromWallet(fromWallet)
-                .toWallet(toWallet)
-                .amount(request.getAmount())
-                .currency(CurrencyCode.VND)
-                .type(TransactionType.TRANSFER)
-                .status(TransactionStatus.PENDING)
-                .description(generateDescription(fromWallet, request))
-                .idempotencyKey(request.getIdempotencyKey())
-                .createdAt(Instant.now())
-                .build();
+        Transaction transaction = transactionFactory.createTransfer(
+                userId, fromWallet, toWallet, request.getAmount(),
+                request.getIdempotencyKey(), generateDescription(fromWallet, request));
 
         transactionRepository.save(transaction);
 
@@ -155,11 +147,6 @@ public class TransferServiceImpl implements TransferService {
                 .message("Chuyển tiền thành công")
                 .data(transferMapper.mapToTransferResponse(transaction))
                 .build();
-    }
-
-    private String generateReferenceCode() {
-        return "TXN" + Instant.now().toEpochMilli()
-                + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
     }
 
     private String generateDescription(Wallet fromWallet, TransferRequest request) {
