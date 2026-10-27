@@ -10,11 +10,13 @@ import com.nhatbui.digital_wallet.enums.WalletStatus;
 import com.nhatbui.digital_wallet.enums.WalletType;
 import com.nhatbui.digital_wallet.exception.AppException;
 import com.nhatbui.digital_wallet.exception.ErrorCode;
+import com.nhatbui.digital_wallet.generator.ReferenceCodeGenerator;
 import com.nhatbui.digital_wallet.mapper.TransferMapper;
 import com.nhatbui.digital_wallet.repository.LedgerEntryRepository;
 import com.nhatbui.digital_wallet.repository.TransactionRepository;
 import com.nhatbui.digital_wallet.repository.WalletRepository;
 import com.nhatbui.digital_wallet.service.transaction.impl.DepositServiceImpl;
+import com.nhatbui.digital_wallet.service.transaction.impl.TransactionFactory;
 import com.nhatbui.digital_wallet.service.transaction.impl.TransferServiceImpl;
 import com.nhatbui.digital_wallet.service.transaction.impl.WithdrawServiceImpl;
 import com.nhatbui.digital_wallet.service.wallet.SystemWalletService;
@@ -60,6 +62,8 @@ class WalletStatusErrorCodeTest {
     @Mock private LedgerEntryRepository ledgerEntryRepository;
     @Mock private TransactionTemplate transactionTemplate;
 
+    private final TransactionFactory transactionFactory = new TransactionFactory(new ReferenceCodeGenerator());
+
     private TransferServiceImpl transferService;
     private DepositServiceImpl depositService;
     private WithdrawServiceImpl withdrawService;
@@ -76,7 +80,8 @@ class WalletStatusErrorCodeTest {
                 transactionRepository,
                 ledgerEntryRepository,
                 transferMapper,
-                transactionTemplate);
+                transactionTemplate,
+                transactionFactory);
 
         depositService = new DepositServiceImpl(
                 transactionRepository,
@@ -85,7 +90,8 @@ class WalletStatusErrorCodeTest {
                 walletRepository,
                 securityUtils,
                 ledgerEntryRepository,
-                transactionTemplate);
+                transactionTemplate,
+                transactionFactory);
 
         withdrawService = new WithdrawServiceImpl(
                 transactionRepository,
@@ -94,7 +100,8 @@ class WalletStatusErrorCodeTest {
                 walletRepository,
                 securityUtils,
                 ledgerEntryRepository,
-                transactionTemplate);
+                transactionTemplate,
+                transactionFactory);
 
         fromWallet = wallet("999999999999", "From Wallet", 100_000L);
         toWallet = wallet("888888888888", "To Wallet", 100_000L);

@@ -9,10 +9,12 @@ import com.nhatbui.digital_wallet.enums.CurrencyCode;
 import com.nhatbui.digital_wallet.enums.EntryType;
 import com.nhatbui.digital_wallet.enums.WalletStatus;
 import com.nhatbui.digital_wallet.enums.WalletType;
+import com.nhatbui.digital_wallet.generator.ReferenceCodeGenerator;
 import com.nhatbui.digital_wallet.mapper.TransferMapper;
 import com.nhatbui.digital_wallet.repository.LedgerEntryRepository;
 import com.nhatbui.digital_wallet.repository.TransactionRepository;
 import com.nhatbui.digital_wallet.repository.WalletRepository;
+import com.nhatbui.digital_wallet.service.transaction.impl.TransactionFactory;
 import com.nhatbui.digital_wallet.service.transaction.impl.WithdrawServiceImpl;
 import com.nhatbui.digital_wallet.service.wallet.SystemWalletService;
 import org.junit.jupiter.api.BeforeEach;
@@ -60,6 +62,8 @@ class WithdrawServiceImplTest {
     @Mock private LedgerEntryRepository ledgerEntryRepository;
     @Mock private TransactionTemplate transactionTemplate;
 
+    private final TransactionFactory transactionFactory = new TransactionFactory(new ReferenceCodeGenerator());
+
     private WithdrawServiceImpl withdrawService;
 
     private Wallet userWallet;
@@ -74,7 +78,8 @@ class WithdrawServiceImplTest {
                 walletRepository,
                 securityUtils,
                 ledgerEntryRepository,
-                transactionTemplate);
+                transactionTemplate,
+                transactionFactory);
 
         userWallet = wallet("999999999999", "User Wallet", USER_BALANCE);
         systemWallet = wallet("555555555555", "System Wallet", SYSTEM_BALANCE);
