@@ -62,6 +62,8 @@ class WalletStatusErrorCodeTest {
     @Mock private LedgerEntryRepository ledgerEntryRepository;
     @Mock private TransactionTemplate transactionTemplate;
 
+    private final TransactionFactory transactionFactory = new TransactionFactory(new ReferenceCodeGenerator());
+
     private TransferServiceImpl transferService;
     private DepositServiceImpl depositService;
     private WithdrawServiceImpl withdrawService;

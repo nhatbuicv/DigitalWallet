@@ -62,6 +62,8 @@ class WithdrawServiceImplTest {
     @Mock private LedgerEntryRepository ledgerEntryRepository;
     @Mock private TransactionTemplate transactionTemplate;
 
+    private final TransactionFactory transactionFactory = new TransactionFactory(new ReferenceCodeGenerator());
+
     private WithdrawServiceImpl withdrawService;
 
     private Wallet userWallet;
