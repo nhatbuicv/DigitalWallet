@@ -71,14 +71,13 @@ public class Wallet {
     @Builder.Default
     Long minimumBalance = 0L;
 
-    @Column(nullable = false)
-    Long dailyLimit ;
+    // Transaction limits. Null for the SYSTEM wallet (intermediary account),
+    // which is not subject to customer transaction limits.
+    Long dailyLimit;
 
     Long monthlyLimit;
 
-    @Column(nullable = false)
-    @Builder.Default
-    Long singleTransactionLimit = 50000000L ;
+    Long singleTransactionLimit;
 
     @Column(length = 10)
     String branchCode;

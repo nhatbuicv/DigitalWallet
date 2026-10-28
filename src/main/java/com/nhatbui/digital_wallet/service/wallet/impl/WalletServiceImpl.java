@@ -1,6 +1,7 @@
 package com.nhatbui.digital_wallet.service.wallet.impl;
 
 import com.nhatbui.digital_wallet.config.SecurityUtils;
+import com.nhatbui.digital_wallet.config.WalletLimitProperties;
 import com.nhatbui.digital_wallet.dto.request.wallet.CreateWalletRequest;
 import com.nhatbui.digital_wallet.dto.response.common.ApiResponse;
 import com.nhatbui.digital_wallet.dto.response.wallet.BalanceResponse;
@@ -38,6 +39,7 @@ public class WalletServiceImpl implements WalletService {
     private final WalletRepository walletRepository;
     private final WalletMapper walletMapper;
     private final SecurityUtils securityUtils;
+    private final WalletLimitProperties walletLimitProperties;
 
     @Override
     public Wallet createDefaultWallet(User user) {
@@ -55,8 +57,9 @@ public class WalletServiceImpl implements WalletService {
                 .status(PENDING)
                 .branchCode("099")
                 .branchName("Online Branch")
-                .dailyLimit(50000000L)
-                .monthlyLimit(50000000L)
+                .singleTransactionLimit(walletLimitProperties.getSingleTransactionLimit())
+                .dailyLimit(walletLimitProperties.getDailyLimit())
+                .monthlyLimit(walletLimitProperties.getMonthlyLimit())
                 .openedAt(Instant.now())
                 .build();
     }
@@ -118,9 +121,9 @@ public class WalletServiceImpl implements WalletService {
                 .blockedBalance(0L)
                 .branchCode("099")
                 .branchName("Online Branch")
-                .dailyLimit(50000000L)
-                .monthlyLimit(500000000L)
-                .openedAt(Instant.now())
+                .singleTransactionLimit(walletLimitProperties.getSingleTransactionLimit())
+                .dailyLimit(walletLimitProperties.getDailyLimit())
+                .monthlyLimit(walletLimitProperties.getMonthlyLimit())
                 .openedAt(Instant.now())
                 .build();
 

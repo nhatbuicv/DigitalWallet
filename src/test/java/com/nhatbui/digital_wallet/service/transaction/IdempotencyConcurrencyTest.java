@@ -200,7 +200,9 @@ class IdempotencyConcurrencyTest extends AbstractIntegrationTest {
                 .availableBalance(balance)
                 .blockedBalance(0L)
                 .status(WalletStatus.ACTIVE)
+                .singleTransactionLimit(20_000_000L)
                 .dailyLimit(50_000_000L)
+                .monthlyLimit(100_000_000L)
                 .openedAt(Instant.now())
                 .build());
     }
