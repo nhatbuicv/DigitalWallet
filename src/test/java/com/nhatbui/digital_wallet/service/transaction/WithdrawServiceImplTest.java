@@ -79,7 +79,7 @@ class WithdrawServiceImplTest {
                 securityUtils,
                 ledgerEntryRepository,
                 transactionTemplate,
-                transactionFactory);
+                new TransactionFactory(new ReferenceCodeGenerator()));
 
         userWallet = wallet("999999999999", "User Wallet", USER_BALANCE);
         systemWallet = wallet("555555555555", "System Wallet", SYSTEM_BALANCE);

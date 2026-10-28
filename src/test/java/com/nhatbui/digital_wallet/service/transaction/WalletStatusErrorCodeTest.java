@@ -81,7 +81,7 @@ class WalletStatusErrorCodeTest {
                 ledgerEntryRepository,
                 transferMapper,
                 transactionTemplate,
-                transactionFactory);
+                new TransactionFactory(new ReferenceCodeGenerator()));
 
         depositService = new DepositServiceImpl(
                 transactionRepository,
@@ -91,7 +91,7 @@ class WalletStatusErrorCodeTest {
                 securityUtils,
                 ledgerEntryRepository,
                 transactionTemplate,
-                transactionFactory);
+                new TransactionFactory(new ReferenceCodeGenerator()));
 
         withdrawService = new WithdrawServiceImpl(
                 transactionRepository,
@@ -101,7 +101,7 @@ class WalletStatusErrorCodeTest {
                 securityUtils,
                 ledgerEntryRepository,
                 transactionTemplate,
-                transactionFactory);
+                new TransactionFactory(new ReferenceCodeGenerator()));
 
         fromWallet = wallet("999999999999", "From Wallet", 100_000L);
         toWallet = wallet("888888888888", "To Wallet", 100_000L);

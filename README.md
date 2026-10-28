@@ -52,6 +52,7 @@ The application is built with **Java 21**, **Spring Boot 3.2.4**, **Spring Secur
   - Create multiple wallets per user (checking, savings, business, etc.)
   - View wallet list, detail, and balance
   - Activate / freeze a wallet
+  - Configurable default transaction limits (single / daily / monthly) via `wallet.limits.defaults`
 - **Money Transfer**
   - Transfer between wallets (with balance & limit checks)
   - Deposit funds
@@ -229,6 +230,10 @@ The API will be available at `http://localhost:8080`.
 | `ESMS_API_KEY` | eSMS API key for SMS OTP (optional) | ❌ | — |
 | `ESMS_SECRET_KEY` | eSMS secret key for SMS OTP (optional) | ❌ | — |
 | `SPRING_PROFILES_ACTIVE` | Spring profile (`local` or `prod`) | ❌ | `local` |
+| `WALLET_DEFAULT_SINGLE_LIMIT` | Default per-transaction limit applied to new wallets (VND) | ❌ | `20000000` |
+| `WALLET_DEFAULT_DAILY_LIMIT` | Default daily limit applied to new wallets (VND) | ❌ | `50000000` |
+| `WALLET_DEFAULT_MONTHLY_LIMIT` | Default monthly limit per wallet applied to new wallets (VND) | ❌ | `100000000` |
+| `WALLET_DEFAULT_CUSTOMER_MONTHLY_LIMIT` | Legal monthly limit per customer across all wallets (VND) | ❌ | `100000000` |
 
 > **Note:** A minimal `.env.example` ships with the repo containing `DB_USERNAME`, `DB_PASSWORD`, and `JWT_SIGNER_KEY`. The remaining variables (`DB_URL`, `MAIL_*`, `ESMS_*`) are assumed to be provided in your local `.env` or runtime environment.
 
@@ -304,6 +309,10 @@ Migrations are managed by **Flyway** and stored under `src/main/resources/db/`.
 | File | Description |
 |:---|:---|
 | `V1__init_schema.sql` | Initial schema — `users`, `wallets`, `transactions`, `ledger_entries`, `refresh_tokens`, `device_sessions`, `password_reset_tokens`, `provinces` |
+| `V2__wallet_status_history.sql` | Wallet status audit history |
+| `V3__audit_logs.sql` | Admin audit log table |
+| `V4__transaction_idempotency_user_scope.sql` | Idempotency key uniqueness scoped per user |
+| `V5__system_wallet_limits_nullable.sql` | Allows NULL transaction limits so the SYSTEM (intermediary) wallet carries no limits |
 
 **Behavior:**
 

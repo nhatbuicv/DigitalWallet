@@ -71,7 +71,7 @@ public enum ErrorCode {
     TRANSACTION_NOT_FOUND  (4003, "Transaction not found",                             HttpStatus.NOT_FOUND),
     INVALID_DEPOSIT_AMOUNT (4004,"Invalid deposit amount",                             HttpStatus.BAD_REQUEST ),
     INVALID_WITHDRAW_AMOUNT (4005,"Invalid withdraw amount",                           HttpStatus.BAD_REQUEST ),
-    SINGLE_TRANSACTION_LIMIT_EXCEEDED(4006 , "" ,                            HttpStatus.BAD_REQUEST ),
+    SINGLE_TRANSACTION_LIMIT_EXCEEDED(4006, "Transaction amount exceeds the single transaction limit", HttpStatus.BAD_REQUEST),
 
     // Lỗi địa chỉ
     PROVINCE_NOT_FOUND     (5001, "Province not found",                                HttpStatus.BAD_REQUEST),
