@@ -71,8 +71,6 @@ public class Wallet {
     @Builder.Default
     Long minimumBalance = 0L;
 
-    // Transaction limits. Null for the SYSTEM wallet (intermediary account),
-    // which is not subject to customer transaction limits.
     Long dailyLimit;
 
     Long monthlyLimit;
