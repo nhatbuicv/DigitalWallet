@@ -22,19 +22,19 @@ public class UserSpecification {
                 return cb.conjunction();
             }
 
-            // Tìm theo số điện thoại (contains, not equal - tránh vấn đề phone null)
+            // Tìm theo số điện thoại
             if (StringUtils.hasText(request.getPhone())) {
                 predicates.add(cb.like(cb.lower(root.get("phone")),
                         "%" + request.getPhone().toLowerCase() + "%"));
             }
 
-            // Tìm theo email (contains, case-insensitive)
+            // Tìm theo email
             if (StringUtils.hasText(request.getEmail())) {
                 predicates.add(cb.like(cb.lower(root.get("email")),
                         "%" + request.getEmail().toLowerCase() + "%"));
             }
 
-            // Tìm theo fullName (contains, case-insensitive)
+            // Tìm theo fullName
             if (StringUtils.hasText(request.getFullName())) {
                 predicates.add(cb.like(cb.lower(root.get("fullName")),
                         "%" + request.getFullName().toLowerCase() + "%"));

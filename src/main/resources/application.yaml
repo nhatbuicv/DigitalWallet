@@ -66,3 +66,11 @@ jwt:
   access-token-duration: 3600
   refresh-token-duration: 86400
 
+wallet:
+  limits:
+    defaults:
+      single-transaction-limit: ${WALLET_DEFAULT_SINGLE_LIMIT:20000000}
+      daily-limit: ${WALLET_DEFAULT_DAILY_LIMIT:50000000}
+      monthly-limit: ${WALLET_DEFAULT_MONTHLY_LIMIT:100000000}
+      customer-monthly-limit: ${WALLET_DEFAULT_CUSTOMER_MONTHLY_LIMIT:100000000}
+

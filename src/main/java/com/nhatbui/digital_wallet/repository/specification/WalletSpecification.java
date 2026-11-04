@@ -28,25 +28,25 @@ public class WalletSpecification {
             // Join với User để filter theo thông tin người dùng
             Join<Wallet, User> userJoin = root.join("user", JoinType.LEFT);
 
-            // Tìm theo số ví (contains)
+            // Tìm theo số ví
             if (StringUtils.hasText(request.getWalletNumber())) {
                 predicates.add(cb.like(root.get("walletNumber"),
                         "%" + request.getWalletNumber() + "%"));
             }
 
-            // Tìm theo SĐT chủ ví (contains, case-insensitive)
+            // Tìm theo SĐT chủ ví
             if (StringUtils.hasText(request.getUserPhone())) {
                 predicates.add(cb.like(cb.lower(userJoin.get("phone")),
                         "%" + request.getUserPhone().toLowerCase() + "%"));
             }
 
-            // Tìm theo email chủ ví (contains, case-insensitive)
+            // Tìm theo email
             if (StringUtils.hasText(request.getUserEmail())) {
                 predicates.add(cb.like(cb.lower(userJoin.get("email")),
                         "%" + request.getUserEmail().toLowerCase() + "%"));
             }
 
-            // Tìm theo họ tên chủ ví (contains, case-insensitive)
+            // Tìm theo họ tên chủ ví
             if (StringUtils.hasText(request.getUserName())) {
                 predicates.add(cb.like(cb.lower(userJoin.get("fullName")),
                         "%" + request.getUserName().toLowerCase() + "%"));
