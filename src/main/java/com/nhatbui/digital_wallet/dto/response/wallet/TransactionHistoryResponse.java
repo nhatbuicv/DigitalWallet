@@ -9,10 +9,11 @@ import java.time.Instant;
 @Setter
 @Builder
 public class TransactionHistoryResponse {
-    private String referenceCode ;
-    private EntryType entryType ;
-    private String description ;
-    private Long amount ;
+    private String transactionId;
+    private String referenceCode;
+    private EntryType entryType;
+    private String description;
+    private Long amount;
     private Long balanceAfter;
-    private Instant transactionTime;
+    private Instant createdAt;
 }

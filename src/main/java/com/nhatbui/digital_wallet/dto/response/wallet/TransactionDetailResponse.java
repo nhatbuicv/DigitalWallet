@@ -12,23 +12,16 @@ import java.time.Instant;
 @Setter
 @Builder
 public class TransactionDetailResponse {
-    private String referenceNumber;
-    private String transactionCode;
-    private TransactionType transactionType;
+    private String transactionId;
+    private String referenceCode;
+    private TransactionType type;
     private TransactionStatus status;
-
-    private String fromWallet;
-
+    private String fromWalletNumber;
     private String fromOwnerName;
-
-    private String toWallet;
+    private String toWalletNumber;
     private String toOwnerName;
-
     private Long amount;
-
     private String description;
-
-    private Instant transactionTime;
-
+    private Instant createdAt;
     private Long balanceAfter;
 }

@@ -33,9 +33,7 @@ public class LedgerEntry {
     private EntryType entryType;
 
     private Long amount;
-
     private Long balanceBefore;
-
     private Long balanceAfter;
 
     @Column(nullable = false, updatable = false)
