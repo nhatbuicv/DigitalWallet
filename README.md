@@ -386,6 +386,8 @@ Migrations are managed by **Flyway** and stored under `src/main/resources/db/`.
 | `POST` | `/transactions/transfer` | Transfer money between wallets | ✅ |
 | `POST` | `/transactions/deposit` | Deposit funds into a wallet | ✅ |
 | `POST` | `/transactions/withdraw` | Withdraw funds from a wallet | ✅ |
+| `GET` | `/transactions/me` | Get the current user's transaction history (paginated, filter by `entryType` / `fromDate` / `toDate`) | ✅ |
+| `GET` | `/transactions/{transactionId}` | Get transaction detail (owner only) | ✅ |
 
 ### Admin (`/admin/users`)
 
@@ -489,7 +491,7 @@ All errors are centralized via `GlobalExceptionHandler` (`@RestControllerAdvice`
 
 ## Future Improvements
 
-- [ ] Add transaction history & detail endpoints (`GET /transactions/history`, `GET /transactions/{id}`)
+- [x] Add transaction history & detail endpoints (`GET /transactions/me`, `GET /transactions/{id}`)
 - [ ] Introduce scheduled jobs for expiring tokens and stale transactions
 - [ ] Add asynchronous notification service (email/SMS via message queue)
 - [ ] Introduce OpenTelemetry tracing and Prometheus metrics
