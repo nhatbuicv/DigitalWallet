@@ -15,6 +15,14 @@ import java.util.UUID;
 
 public interface LedgerEntryRepository extends JpaRepository<LedgerEntry, UUID>, JpaSpecificationExecutor<LedgerEntry> {
 
+    @Query("""
+        select le from LedgerEntry le
+        join fetch le.wallet
+        where le.transaction.id = :transactionId
+        order by le.createdAt asc
+        """)
+    List<LedgerEntry> findAllByTransaction_IdOrderByCreatedAtAsc(@Param("transactionId") UUID transactionId);
+
     Page<LedgerEntry> findByWalletUid(UUID walletId, Pageable pageable);
 
     @Query(value = """
