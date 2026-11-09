@@ -12,7 +12,6 @@ import java.util.UUID;
 @Setter
 @Builder
 public class AuditLogResponse {
-
     private UUID uid;
     private UUID actorUid;
     private String actorName;

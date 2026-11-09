@@ -12,7 +12,6 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class TransactionAdminDetailResponse extends TransactionAdminResponse {
-
     private String idempotencyKey;
 
     @Builder.Default

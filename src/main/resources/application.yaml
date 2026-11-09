@@ -27,6 +27,8 @@ spring:
     schemas: public
     table: flyway_schema_history
     validate-on-migrate: true
+  transaction:
+    default-timeout: 60s # Timeout tối đa của DB transaction, phải << idempotency.in-progress-timeout
 
 
   data:
@@ -73,4 +75,14 @@ wallet:
       daily-limit: ${WALLET_DEFAULT_DAILY_LIMIT:50000000}
       monthly-limit: ${WALLET_DEFAULT_MONTHLY_LIMIT:100000000}
       customer-monthly-limit: ${WALLET_DEFAULT_CUSTOMER_MONTHLY_LIMIT:100000000}
+
+idempotency:
+  ttl: 24h
+  # Phân tầng timeout: spring.transaction.default-timeout (60s) << in-progress-timeout (5m)
+  in-progress-timeout: 5m
+  # Quét bản ghi IN_PROGRESS bị treo -> đánh dấu SUSPECTED_TIMEOUT (không xóa)
+  stale-scan-delay: PT1M
+  # Xóa bản ghi COMPLETED/FAILED đã hết TTL
+  cleanup-cron: "0 0 3 * * *"
+
 

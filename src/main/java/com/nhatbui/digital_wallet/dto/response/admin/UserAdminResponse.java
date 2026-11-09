@@ -9,7 +9,6 @@ import java.time.Instant;
 @Setter
 @Builder
 public class UserAdminResponse {
-
     private String uid;
     private String fullName;
     private String email;

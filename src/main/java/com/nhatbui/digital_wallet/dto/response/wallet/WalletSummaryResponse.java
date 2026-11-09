@@ -15,9 +15,7 @@ public class WalletSummaryResponse {
     private String walletNumber;
     private String walletName;
     private WalletType walletType;
-
     private CurrencyCode currency;
     private Long balance;
-
     private WalletStatus status;
 }

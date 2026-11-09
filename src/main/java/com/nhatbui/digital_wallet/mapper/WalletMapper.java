@@ -10,7 +10,7 @@ import org.mapstruct.Mapping;
 
 import java.util.List;
 
-@Mapper(componentModel = "spring")
+@Mapper
 public interface WalletMapper {
     WalletResponse mapToWalletResponse(Wallet wallet);
 
@@ -18,10 +18,9 @@ public interface WalletMapper {
 
     BalanceResponse mapToBalanceResponse(Wallet wallet);
 
-    @Mapping(target = "uid", expression = "java(wallet.getUid() != null ? wallet.getUid().toString() : null)")
-    @Mapping(target = "userUid", expression = "java(wallet.getUser() != null ? wallet.getUser().getUid().toString() : null)")
-    @Mapping(target = "userFullName", expression = "java(wallet.getUser() != null ? wallet.getUser().getFullName() : null)")
-    @Mapping(target = "userPhone", expression = "java(wallet.getUser() != null ? wallet.getUser().getPhone() : null)")
-    @Mapping(target = "userEmail", expression = "java(wallet.getUser() != null ? wallet.getUser().getEmail() : null)")
+    @Mapping(target = "userUid", source = "user.uid")
+    @Mapping(target = "userFullName", source = "user.fullName")
+    @Mapping(target = "userPhone", source = "user.phone")
+    @Mapping(target = "userEmail", source = "user.email")
     WalletAdminResponse mapToWalletAdminResponse(Wallet wallet);
 }

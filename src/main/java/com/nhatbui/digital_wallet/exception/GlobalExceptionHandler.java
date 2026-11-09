@@ -24,7 +24,6 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-
     // Dựng response lỗi dùng chung
     private ResponseEntity<ApiResponse<?>> build(ErrorCode errorCode) {
         return build(errorCode, errorCode.getMessage());
@@ -42,7 +41,24 @@ public class GlobalExceptionHandler {
     // Lỗi nghiệp vụ
     @ExceptionHandler(AppException.class)
     ResponseEntity<ApiResponse<?>> handleAppException(AppException e) {
-        return build(e.getErrorCode());
+        ErrorCode errorCode = e.getErrorCode();
+        if (errorCode == ErrorCode.IDEMPOTENCY_IN_PROGRESS) {
+            ApiResponse<?> apiResponse = ApiResponse.builder()
+                    .code(errorCode.getCode())
+                    .message(errorCode.getMessage())
+                    .success(false)
+                    .build();
+            return ResponseEntity.status(errorCode.getStatusCode())
+                    .header("Retry-After", "1")
+                    .body(apiResponse);
+        }
+        ResponseEntity<ApiResponse<?>> response = build(errorCode);
+        if (e.isReplayed()) {
+            return ResponseEntity.status(response.getStatusCode())
+                    .header("Idempotent-Replay", "true")
+                    .body(response.getBody());
+        }
+        return response;
     }
 
     // Thiếu quyền thì 403, thiếu/sai token ở filter thì entry point đã trả 401 trước đó

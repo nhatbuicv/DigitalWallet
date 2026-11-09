@@ -7,7 +7,6 @@ import org.springframework.http.HttpStatusCode;
 
 @Getter
 public enum ErrorCode {
-
     // Lỗi hệ thống và lỗi chung
     UNCATEGORIZED_EXCEPTION(9999, "Uncategorized system error",                        HttpStatus.INTERNAL_SERVER_ERROR),
     INTERNAL_ERROR         (9000, "Internal server error",                             HttpStatus.INTERNAL_SERVER_ERROR),
@@ -73,6 +72,10 @@ public enum ErrorCode {
     INVALID_WITHDRAW_AMOUNT (4005,"Invalid withdraw amount",                           HttpStatus.BAD_REQUEST ),
     SINGLE_TRANSACTION_LIMIT_EXCEEDED(4006 , "" ,                                      HttpStatus.BAD_REQUEST ),
     INVALID_DATE_RANGE(4007, "Invalid date range",                                     HttpStatus.BAD_REQUEST ),
+    IDEMPOTENCY_KEY_REUSED(4008, "Idempotency key was reused with a different request payload", HttpStatus.CONFLICT),
+    IDEMPOTENCY_IN_PROGRESS(4009, "A request with this idempotency key is still in progress",     HttpStatus.CONFLICT),
+    IDEMPOTENCY_KEY_REQUIRED(4010, "Idempotency key is required via Idempotency-Key header or idempotencyKey in body", HttpStatus.BAD_REQUEST),
+    TRANSACTION_STATUS_UNCERTAIN(4011, "The previous request with this idempotency key timed out and its result is uncertain. Please check your transaction history or contact support", HttpStatus.CONFLICT),
 
     // Lỗi địa chỉ
     PROVINCE_NOT_FOUND     (5001, "Province not found",                                HttpStatus.BAD_REQUEST),
@@ -86,6 +89,15 @@ public enum ErrorCode {
         this.code = code;
         this.message = message;
         this.statusCode = statusCode;
+    }
+
+    public static ErrorCode fromCode(int code) {
+        for (ErrorCode errorCode : values()) {
+            if (errorCode.code == code) {
+                return errorCode;
+            }
+        }
+        return INTERNAL_ERROR;
     }
 
     public static ErrorCode fromWalletStatus(WalletStatus status) {
