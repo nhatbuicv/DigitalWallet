@@ -11,7 +11,7 @@ import org.mapstruct.InheritConfiguration;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-@Mapper(componentModel = "spring")
+@Mapper
 public interface TransactionMapper {
     @Mapping(target = ".", source = "transaction")
     @Mapping(target = "transactionId", source = "transaction.id")
@@ -34,7 +34,6 @@ public interface TransactionMapper {
     TransactionAdminResponse mapToAdminResponse(Transaction transaction);
 
     @InheritConfiguration(name = "mapToAdminResponse")
-    @Mapping(target = "ledgerEntries", ignore = true)
     TransactionAdminDetailResponse mapToAdminDetailResponse(Transaction transaction);
 
     @Mapping(target = "walletId", source = "wallet.uid")

@@ -13,16 +13,10 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AuditLogSearchRequest {
-
     private UUID actorUid;
-
     private AuditAction action;
-
     private AuditTargetType targetType;
-
     private UUID targetUid;
-
     private Instant fromDate;
-
     private Instant toDate;
 }

@@ -15,6 +15,11 @@ import com.nhatbui.digital_wallet.mapper.TransferMapper;
 import com.nhatbui.digital_wallet.repository.LedgerEntryRepository;
 import com.nhatbui.digital_wallet.repository.TransactionRepository;
 import com.nhatbui.digital_wallet.repository.WalletRepository;
+import com.nhatbui.digital_wallet.service.idempotency.ClaimResult;
+import com.nhatbui.digital_wallet.service.idempotency.ClaimResult.ClaimStatus;
+import com.nhatbui.digital_wallet.service.idempotency.IdempotencyService;
+import com.nhatbui.digital_wallet.service.idempotency.IdempotentExecutor;
+import com.nhatbui.digital_wallet.service.idempotency.RequestHasher;
 import com.nhatbui.digital_wallet.service.transaction.impl.DepositServiceImpl;
 import com.nhatbui.digital_wallet.service.transaction.impl.TransactionFactory;
 import com.nhatbui.digital_wallet.service.transaction.impl.TransferServiceImpl;
@@ -61,8 +66,9 @@ class WalletStatusErrorCodeTest {
     @Mock private SecurityUtils securityUtils;
     @Mock private LedgerEntryRepository ledgerEntryRepository;
     @Mock private TransactionTemplate transactionTemplate;
+    @Mock private IdempotencyService idempotencyService;
 
-    private final TransactionFactory transactionFactory = new TransactionFactory(new ReferenceCodeGenerator());
+    private final RequestHasher requestHasher = new RequestHasher();
 
     private TransferServiceImpl transferService;
     private DepositServiceImpl depositService;
@@ -74,14 +80,17 @@ class WalletStatusErrorCodeTest {
 
     @BeforeEach
     void setUp() {
+        IdempotentExecutor idempotentExecutor = new IdempotentExecutor(idempotencyService, transactionTemplate);
+
         transferService = new TransferServiceImpl(
                 securityUtils,
                 walletRepository,
                 transactionRepository,
                 ledgerEntryRepository,
                 transferMapper,
-                transactionTemplate,
-                new TransactionFactory(new ReferenceCodeGenerator()));
+                new TransactionFactory(new ReferenceCodeGenerator()),
+                idempotentExecutor,
+                requestHasher);
 
         depositService = new DepositServiceImpl(
                 transactionRepository,
@@ -90,8 +99,9 @@ class WalletStatusErrorCodeTest {
                 walletRepository,
                 securityUtils,
                 ledgerEntryRepository,
-                transactionTemplate,
-                new TransactionFactory(new ReferenceCodeGenerator()));
+                new TransactionFactory(new ReferenceCodeGenerator()),
+                idempotentExecutor,
+                requestHasher);
 
         withdrawService = new WithdrawServiceImpl(
                 transactionRepository,
@@ -100,16 +110,17 @@ class WalletStatusErrorCodeTest {
                 walletRepository,
                 securityUtils,
                 ledgerEntryRepository,
-                transactionTemplate,
-                new TransactionFactory(new ReferenceCodeGenerator()));
+                new TransactionFactory(new ReferenceCodeGenerator()),
+                idempotentExecutor,
+                requestHasher);
 
         fromWallet = wallet("999999999999", "From Wallet", 100_000L);
         toWallet = wallet("888888888888", "To Wallet", 100_000L);
         systemWallet = wallet("555555555555", "System Wallet", 500_000L);
 
         when(securityUtils.getCurrentUserId()).thenReturn(USER_ID);
-        when(transactionRepository.findByUserIdAndIdempotencyKey(eq(USER_ID), anyString()))
-                .thenReturn(Optional.empty());
+        when(idempotencyService.claim(eq(USER_ID), any(), anyString(), anyString()))
+                .thenAnswer(inv -> new ClaimResult(UUID.randomUUID(), ClaimStatus.OWNED, null, null));
         when(systemWalletService.getSystemWallet()).thenReturn(systemWallet);
         when(walletRepository.findByWalletNumberAndUserUid(anyString(), eq(USER_ID)))
                 .thenAnswer(invocation -> Optional.of(fromWallet));

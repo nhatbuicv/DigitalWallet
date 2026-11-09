@@ -11,8 +11,8 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "transactions", uniqueConstraints = @UniqueConstraint(
-        name = "uk_transaction_user_idempotency",
-        columnNames = {"user_id", "idempotency_key"}))
+        name = "uk_transaction_user_type_idem",
+        columnNames = {"user_id", "type", "idempotency_key"}))
 @Getter
 @Setter
 @NoArgsConstructor

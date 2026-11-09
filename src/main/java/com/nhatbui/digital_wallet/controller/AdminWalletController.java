@@ -65,18 +65,14 @@ public class AdminWalletController {
     }
 
     @PatchMapping("/{walletUid}/freeze")
-    public ResponseEntity<ApiResponse<WalletAdminResponse>> freezeWallet(
-            @PathVariable UUID walletUid,
-            @RequestBody @Valid WalletStatusRequest statusRequest) {
+    public ResponseEntity<ApiResponse<WalletAdminResponse>> freezeWallet(@PathVariable UUID walletUid, @RequestBody @Valid WalletStatusRequest statusRequest) {
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(adminWalletService.freezeWallet(walletUid, statusRequest));
     }
 
     @PatchMapping("/{walletUid}/unfreeze")
-    public ResponseEntity<ApiResponse<WalletAdminResponse>> unfreezeWallet(
-            @PathVariable UUID walletUid,
-            @RequestBody @Valid WalletStatusRequest statusRequest) {
+    public ResponseEntity<ApiResponse<WalletAdminResponse>> unfreezeWallet(@PathVariable UUID walletUid, @RequestBody @Valid WalletStatusRequest statusRequest) {
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(adminWalletService.unfreezeWallet(walletUid, statusRequest));

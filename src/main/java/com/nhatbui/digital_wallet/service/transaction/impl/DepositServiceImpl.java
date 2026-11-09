@@ -1,32 +1,31 @@
 package com.nhatbui.digital_wallet.service.transaction.impl;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.nhatbui.digital_wallet.config.SecurityUtils;
 import com.nhatbui.digital_wallet.dto.request.wallet.DepositRequest;
 import com.nhatbui.digital_wallet.dto.response.common.ApiResponse;
+import com.nhatbui.digital_wallet.dto.response.common.IdempotentResult;
 import com.nhatbui.digital_wallet.dto.response.wallet.TransferResponse;
 import com.nhatbui.digital_wallet.entity.LedgerEntry;
 import com.nhatbui.digital_wallet.entity.Transaction;
 import com.nhatbui.digital_wallet.entity.Wallet;
-import com.nhatbui.digital_wallet.enums.CurrencyCode;
 import com.nhatbui.digital_wallet.enums.EntryType;
+import com.nhatbui.digital_wallet.enums.IdempotencyOperation;
 import com.nhatbui.digital_wallet.enums.TransactionStatus;
-import com.nhatbui.digital_wallet.enums.TransactionType;
 import com.nhatbui.digital_wallet.enums.WalletStatus;
 import com.nhatbui.digital_wallet.exception.AppException;
 import com.nhatbui.digital_wallet.exception.ErrorCode;
-import com.nhatbui.digital_wallet.generator.ReferenceCodeGenerator;
 import com.nhatbui.digital_wallet.mapper.TransferMapper;
 import com.nhatbui.digital_wallet.repository.LedgerEntryRepository;
 import com.nhatbui.digital_wallet.repository.TransactionRepository;
 import com.nhatbui.digital_wallet.repository.WalletRepository;
+import com.nhatbui.digital_wallet.service.idempotency.IdempotentExecutor;
+import com.nhatbui.digital_wallet.service.idempotency.RequestHasher;
 import com.nhatbui.digital_wallet.service.transaction.DepositService;
 import com.nhatbui.digital_wallet.service.wallet.SystemWalletService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.ConcurrencyFailureException;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Instant;
 import java.util.List;
@@ -36,38 +35,31 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class DepositServiceImpl implements DepositService {
 
+    private static final TypeReference<ApiResponse<TransferResponse>> RESPONSE_TYPE = new TypeReference<>() {
+    };
     private final TransactionRepository transactionRepository;
     private final TransferMapper transferMapper;
     private final SystemWalletService systemWalletService;
     private final WalletRepository walletRepository;
     private final SecurityUtils securityUtils;
     private final LedgerEntryRepository ledgerEntryRepository;
-    private final TransactionTemplate transactionTemplate;
     private final TransactionFactory transactionFactory;
+    private final IdempotentExecutor idempotentExecutor;
+    private final RequestHasher requestHasher;
 
     @Override
     @PreAuthorize("isAuthenticated()")
-    public ApiResponse<TransferResponse> deposit(DepositRequest depositRequest) {
+    public IdempotentResult<ApiResponse<TransferResponse>> deposit(DepositRequest depositRequest) {
         UUID userId = securityUtils.getCurrentUserId();
+        String hash = requestHasher.hash(IdempotencyOperation.DEPOSIT, depositRequest.getWalletNumber(), depositRequest.getAmount(), depositRequest.getDescription());
 
-        var existing = transactionRepository
-                .findByUserIdAndIdempotencyKey(userId, depositRequest.getIdempotencyKey());
-
-        if (existing.isPresent()) {
-            return successResponse(existing.get());
-        }
-
-        try {
-            return transactionTemplate.execute(status -> doDeposit(depositRequest, userId));
-        } catch (DataIntegrityViolationException | ConcurrencyFailureException e) {
-            // Trùng key do request song song -> trả lại giao dịch đã ghi
-            var raced = transactionRepository
-                    .findByUserIdAndIdempotencyKey(userId, depositRequest.getIdempotencyKey());
-            if (raced.isPresent()) {
-                return successResponse(raced.get());
-            }
-            throw e;
-        }
+        return idempotentExecutor.execute(
+                userId,
+                IdempotencyOperation.DEPOSIT,
+                depositRequest.getIdempotencyKey(),
+                hash,
+                RESPONSE_TYPE,
+                () -> doDeposit(depositRequest, userId));
     }
 
     private ApiResponse<TransferResponse> doDeposit(DepositRequest depositRequest, UUID userId) {
@@ -102,9 +94,9 @@ public class DepositServiceImpl implements DepositService {
         transactionRepository.save(transaction);
 
         Long systemBalanceBefore = lockedSystem.getBalance();
-        Long userBalanceBefore   = lockedUser.getBalance();
-        Long systemBalanceAfter  = systemBalanceBefore - depositRequest.getAmount();
-        Long userBalanceAfter    = userBalanceBefore   + depositRequest.getAmount();
+        Long userBalanceBefore = lockedUser.getBalance();
+        Long systemBalanceAfter = systemBalanceBefore - depositRequest.getAmount();
+        Long userBalanceAfter = userBalanceBefore + depositRequest.getAmount();
 
         LedgerEntry debitSystem = LedgerEntry.builder()
                 .transaction(transaction)
@@ -140,10 +132,6 @@ public class DepositServiceImpl implements DepositService {
 
         transactionRepository.save(transaction);
 
-        return successResponse(transaction);
-    }
-
-    private ApiResponse<TransferResponse> successResponse(Transaction transaction) {
         return ApiResponse.<TransferResponse>builder()
                 .success(true)
                 .message("Nạp tiền thành công")
@@ -151,10 +139,9 @@ public class DepositServiceImpl implements DepositService {
                 .build();
     }
 
-
     private List<Wallet> lockInOrder(Wallet a, Wallet b) {
         boolean aFirst = a.getUid().compareTo(b.getUid()) < 0;
-        Wallet first  = aFirst ? a : b;
+        Wallet first = aFirst ? a : b;
         Wallet second = aFirst ? b : a;
 
         Wallet lockedFirst = walletRepository.findByWalletNumberWithLock(first.getWalletNumber())

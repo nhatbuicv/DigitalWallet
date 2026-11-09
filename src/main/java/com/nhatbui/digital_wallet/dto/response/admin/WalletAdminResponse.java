@@ -9,7 +9,6 @@ import java.time.Instant;
 @Setter
 @Builder
 public class WalletAdminResponse {
-
     private String uid;
     private String walletNumber;
     private String walletName;

@@ -8,7 +8,6 @@ import lombok.Data;
 @Data
 @PasswordMatch(message = "PASSWORD_NOT_MATCH")
 public class ChangePasswordRequest {
-
     @NotBlank(message = "Mật khẩu hiện tại không được để trống")
     private String oldPassword;
 

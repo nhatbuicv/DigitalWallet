@@ -107,5 +107,26 @@ class GlobalExceptionHandlerTest {
 
         assertThat(response.getStatusCode().value()).isEqualTo(500);
         assertThat(response.getBody().getCode()).isEqualTo(9999);
+        ResponseEntity<ApiResponse<?>> inProg =
+                handler.handleAppException(new AppException(ErrorCode.IDEMPOTENCY_IN_PROGRESS));
+        assertThat(inProg.getStatusCode().value()).isEqualTo(409);
+        assertThat(inProg.getHeaders().getFirst("Retry-After")).isEqualTo("1");
+        assertThat(inProg.getBody().getCode()).isEqualTo(ErrorCode.IDEMPOTENCY_IN_PROGRESS.getCode());
+    }
+
+    @Test
+    void handleAppException_whenReplayed_shouldIncludeIdempotentReplayHeader() {
+        AppException replayedException = new AppException(ErrorCode.INSUFFICIENT_BALANCE, true);
+        ResponseEntity<ApiResponse<?>> response = handler.handleAppException(replayedException);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(400);
+        assertThat(response.getHeaders().getFirst("Idempotent-Replay")).isEqualTo("true");
+        assertThat(response.getBody().getCode()).isEqualTo(ErrorCode.INSUFFICIENT_BALANCE.getCode());
+
+        AppException freshException = new AppException(ErrorCode.INSUFFICIENT_BALANCE, false);
+        ResponseEntity<ApiResponse<?>> freshResponse = handler.handleAppException(freshException);
+
+        assertThat(freshResponse.getStatusCode().value()).isEqualTo(400);
+        assertThat(freshResponse.getHeaders().containsKey("Idempotent-Replay")).isFalse();
     }
 }

@@ -12,7 +12,6 @@ import java.util.UUID;
 @Setter
 @Builder
 public class UserProfileResponse {
-
     private UUID uid;
     private String customerId;
     private String fullName;

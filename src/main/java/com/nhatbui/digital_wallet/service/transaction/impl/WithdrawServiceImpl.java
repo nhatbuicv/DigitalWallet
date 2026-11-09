@@ -1,32 +1,31 @@
 package com.nhatbui.digital_wallet.service.transaction.impl;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.nhatbui.digital_wallet.config.SecurityUtils;
 import com.nhatbui.digital_wallet.dto.request.wallet.WithdrawRequest;
 import com.nhatbui.digital_wallet.dto.response.common.ApiResponse;
+import com.nhatbui.digital_wallet.dto.response.common.IdempotentResult;
 import com.nhatbui.digital_wallet.dto.response.wallet.TransferResponse;
 import com.nhatbui.digital_wallet.entity.LedgerEntry;
 import com.nhatbui.digital_wallet.entity.Transaction;
 import com.nhatbui.digital_wallet.entity.Wallet;
-import com.nhatbui.digital_wallet.enums.CurrencyCode;
 import com.nhatbui.digital_wallet.enums.EntryType;
+import com.nhatbui.digital_wallet.enums.IdempotencyOperation;
 import com.nhatbui.digital_wallet.enums.TransactionStatus;
-import com.nhatbui.digital_wallet.enums.TransactionType;
 import com.nhatbui.digital_wallet.enums.WalletStatus;
 import com.nhatbui.digital_wallet.exception.AppException;
 import com.nhatbui.digital_wallet.exception.ErrorCode;
-import com.nhatbui.digital_wallet.generator.ReferenceCodeGenerator;
 import com.nhatbui.digital_wallet.mapper.TransferMapper;
 import com.nhatbui.digital_wallet.repository.LedgerEntryRepository;
 import com.nhatbui.digital_wallet.repository.TransactionRepository;
 import com.nhatbui.digital_wallet.repository.WalletRepository;
+import com.nhatbui.digital_wallet.service.idempotency.IdempotentExecutor;
+import com.nhatbui.digital_wallet.service.idempotency.RequestHasher;
 import com.nhatbui.digital_wallet.service.transaction.WithdrawService;
 import com.nhatbui.digital_wallet.service.wallet.SystemWalletService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.ConcurrencyFailureException;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Instant;
 import java.util.List;
@@ -36,38 +35,34 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class WithdrawServiceImpl implements WithdrawService {
 
+    private static final TypeReference<ApiResponse<TransferResponse>> RESPONSE_TYPE = new TypeReference<>() {};
     private final TransactionRepository transactionRepository;
     private final TransferMapper transferMapper;
     private final SystemWalletService systemWalletService;
     private final WalletRepository walletRepository;
     private final SecurityUtils securityUtils;
     private final LedgerEntryRepository ledgerEntryRepository;
-    private final TransactionTemplate transactionTemplate;
     private final TransactionFactory transactionFactory;
+    private final IdempotentExecutor idempotentExecutor;
+    private final RequestHasher requestHasher;
 
     @Override
     @PreAuthorize("isAuthenticated()")
-    public ApiResponse<TransferResponse> withdraw(WithdrawRequest withdrawRequest) {
+    public IdempotentResult<ApiResponse<TransferResponse>> withdraw(WithdrawRequest withdrawRequest) {
         UUID userId = securityUtils.getCurrentUserId();
+        String hash = requestHasher.hash(
+                IdempotencyOperation.WITHDRAW,
+                withdrawRequest.getWalletNumber(),
+                withdrawRequest.getAmount(),
+                withdrawRequest.getDescription());
 
-        var existing = transactionRepository
-                .findByUserIdAndIdempotencyKey(userId, withdrawRequest.getIdempotencyKey());
-
-        if (existing.isPresent()) {
-            return successResponse(existing.get());
-        }
-
-        try {
-            return transactionTemplate.execute(status -> doWithdraw(withdrawRequest, userId));
-        } catch (DataIntegrityViolationException | ConcurrencyFailureException e) {
-            // Trùng key do request song song -> trả lại giao dịch đã ghi
-            var raced = transactionRepository
-                    .findByUserIdAndIdempotencyKey(userId, withdrawRequest.getIdempotencyKey());
-            if (raced.isPresent()) {
-                return successResponse(raced.get());
-            }
-            throw e;
-        }
+        return idempotentExecutor.execute(
+                userId,
+                IdempotencyOperation.WITHDRAW,
+                withdrawRequest.getIdempotencyKey(),
+                hash,
+                RESPONSE_TYPE,
+                () -> doWithdraw(withdrawRequest, userId));
     }
 
     private ApiResponse<TransferResponse> doWithdraw(WithdrawRequest withdrawRequest, UUID userId) {
@@ -142,10 +137,6 @@ public class WithdrawServiceImpl implements WithdrawService {
 
         transactionRepository.save(transaction);
 
-        return successResponse(transaction);
-    }
-
-    private ApiResponse<TransferResponse> successResponse(Transaction transaction) {
         return ApiResponse.<TransferResponse>builder()
                 .success(true)
                 .message("Rút tiền thành công")

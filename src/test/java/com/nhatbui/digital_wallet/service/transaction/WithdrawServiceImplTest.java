@@ -9,11 +9,18 @@ import com.nhatbui.digital_wallet.enums.CurrencyCode;
 import com.nhatbui.digital_wallet.enums.EntryType;
 import com.nhatbui.digital_wallet.enums.WalletStatus;
 import com.nhatbui.digital_wallet.enums.WalletType;
+import com.nhatbui.digital_wallet.exception.AppException;
+import com.nhatbui.digital_wallet.exception.ErrorCode;
 import com.nhatbui.digital_wallet.generator.ReferenceCodeGenerator;
 import com.nhatbui.digital_wallet.mapper.TransferMapper;
 import com.nhatbui.digital_wallet.repository.LedgerEntryRepository;
 import com.nhatbui.digital_wallet.repository.TransactionRepository;
 import com.nhatbui.digital_wallet.repository.WalletRepository;
+import com.nhatbui.digital_wallet.service.idempotency.ClaimResult;
+import com.nhatbui.digital_wallet.service.idempotency.ClaimResult.ClaimStatus;
+import com.nhatbui.digital_wallet.service.idempotency.IdempotencyService;
+import com.nhatbui.digital_wallet.service.idempotency.IdempotentExecutor;
+import com.nhatbui.digital_wallet.service.idempotency.RequestHasher;
 import com.nhatbui.digital_wallet.service.transaction.impl.TransactionFactory;
 import com.nhatbui.digital_wallet.service.transaction.impl.WithdrawServiceImpl;
 import com.nhatbui.digital_wallet.service.wallet.SystemWalletService;
@@ -34,9 +41,11 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -61,8 +70,9 @@ class WithdrawServiceImplTest {
     @Mock private SecurityUtils securityUtils;
     @Mock private LedgerEntryRepository ledgerEntryRepository;
     @Mock private TransactionTemplate transactionTemplate;
+    @Mock private IdempotencyService idempotencyService;
 
-    private final TransactionFactory transactionFactory = new TransactionFactory(new ReferenceCodeGenerator());
+    private final RequestHasher requestHasher = new RequestHasher();
 
     private WithdrawServiceImpl withdrawService;
 
@@ -71,6 +81,8 @@ class WithdrawServiceImplTest {
 
     @BeforeEach
     void setUp() {
+        IdempotentExecutor idempotentExecutor = new IdempotentExecutor(idempotencyService, transactionTemplate);
+
         withdrawService = new WithdrawServiceImpl(
                 transactionRepository,
                 transferMapper,
@@ -78,15 +90,16 @@ class WithdrawServiceImplTest {
                 walletRepository,
                 securityUtils,
                 ledgerEntryRepository,
-                transactionTemplate,
-                new TransactionFactory(new ReferenceCodeGenerator()));
+                new TransactionFactory(new ReferenceCodeGenerator()),
+                idempotentExecutor,
+                requestHasher);
 
         userWallet = wallet("999999999999", "User Wallet", USER_BALANCE);
         systemWallet = wallet("555555555555", "System Wallet", SYSTEM_BALANCE);
 
         when(securityUtils.getCurrentUserId()).thenReturn(USER_ID);
-        when(transactionRepository.findByUserIdAndIdempotencyKey(eq(USER_ID), anyString()))
-                .thenReturn(Optional.empty());
+        when(idempotencyService.claim(eq(USER_ID), any(), anyString(), anyString()))
+                .thenAnswer(inv -> new ClaimResult(UUID.randomUUID(), ClaimStatus.OWNED, null, null));
         when(systemWalletService.getSystemWallet()).thenReturn(systemWallet);
         when(walletRepository.findByWalletNumberAndUserUid(anyString(), eq(USER_ID)))
                 .thenReturn(Optional.of(userWallet));
@@ -109,7 +122,7 @@ class WithdrawServiceImplTest {
 
     @Test
     void withdraw_keepsBalanceAndAvailableBalanceInSyncForBothWallets() {
-        withdrawService.withdraw(request(AMOUNT));
+        withdrawService.withdraw(request(AMOUNT)).body();
 
         // Ví user: trừ cả balance và availableBalance.
         assertThat(userWallet.getBalance()).isEqualTo(USER_BALANCE - AMOUNT);
@@ -124,7 +137,7 @@ class WithdrawServiceImplTest {
     void withdraw_conservesTotalMoneyAcrossBothWallets() {
         long totalBefore = userWallet.getBalance() + systemWallet.getBalance();
 
-        withdrawService.withdraw(request(AMOUNT));
+        withdrawService.withdraw(request(AMOUNT)).body();
 
         long totalAfter = userWallet.getBalance() + systemWallet.getBalance();
         assertThat(totalAfter).isEqualTo(totalBefore);
@@ -133,7 +146,7 @@ class WithdrawServiceImplTest {
     @Test
     @SuppressWarnings("unchecked")
     void withdraw_recordsBalancedDoubleEntryWithBalanceBefore() {
-        withdrawService.withdraw(request(AMOUNT));
+        withdrawService.withdraw(request(AMOUNT)).body();
 
         ArgumentCaptor<List<LedgerEntry>> captor = ArgumentCaptor.forClass(List.class);
         verify(ledgerEntryRepository).saveAll(captor.capture());
@@ -158,6 +171,49 @@ class WithdrawServiceImplTest {
 
         // Double-entry: tổng debit = tổng credit.
         assertThat(debitUser.getAmount()).isEqualTo(creditSystem.getAmount());
+    }
+
+    @Test
+    void withdraw_businessError_callsIdempotencyFail() {
+        UUID claimId = UUID.randomUUID();
+        when(idempotencyService.claim(eq(USER_ID), any(), anyString(), anyString()))
+                .thenReturn(new ClaimResult(claimId, ClaimStatus.OWNED, null, null));
+
+        // Withdraw amount < 1000 throws INVALID_WITHDRAW_AMOUNT (400 Bad Request)
+        assertThatThrownBy(() -> withdrawService.withdraw(request(500L)))
+                .isInstanceOfSatisfying(AppException.class,
+                        e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.INVALID_WITHDRAW_AMOUNT));
+
+        verify(idempotencyService).fail(claimId, ErrorCode.INVALID_WITHDRAW_AMOUNT);
+    }
+
+    @Test
+    void withdraw_internalServerError_callsIdempotencyRelease() {
+        UUID claimId = UUID.randomUUID();
+        when(idempotencyService.claim(eq(USER_ID), any(), anyString(), anyString()))
+                .thenReturn(new ClaimResult(claimId, ClaimStatus.OWNED, null, null));
+        doThrow(new AppException(ErrorCode.INTERNAL_ERROR))
+                .when(transactionTemplate).execute(any());
+
+        assertThatThrownBy(() -> withdrawService.withdraw(request(AMOUNT)))
+                .isInstanceOfSatisfying(AppException.class,
+                        e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.INTERNAL_ERROR));
+
+        verify(idempotencyService).release(claimId);
+    }
+
+    @Test
+    void withdraw_unexpectedRuntimeException_callsIdempotencyRelease() {
+        UUID claimId = UUID.randomUUID();
+        when(idempotencyService.claim(eq(USER_ID), any(), anyString(), anyString()))
+                .thenReturn(new ClaimResult(claimId, ClaimStatus.OWNED, null, null));
+        doThrow(new IllegalStateException("DB connection pool exhausted"))
+                .when(transactionTemplate).execute(any());
+
+        assertThatThrownBy(() -> withdrawService.withdraw(request(AMOUNT)))
+                .isInstanceOf(IllegalStateException.class);
+
+        verify(idempotencyService).release(claimId);
     }
 
     private WithdrawRequest request(long amount) {

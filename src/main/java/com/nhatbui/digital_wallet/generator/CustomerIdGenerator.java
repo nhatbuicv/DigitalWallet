@@ -8,7 +8,6 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class CustomerIdGenerator {
-
     private final JdbcTemplate jdbcTemplate;
 
     public String generateCustomerId(UserRole role) {

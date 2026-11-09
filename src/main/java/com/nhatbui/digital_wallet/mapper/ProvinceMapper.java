@@ -4,7 +4,7 @@ import com.nhatbui.digital_wallet.dto.response.location.ProvinceResponse;
 import com.nhatbui.digital_wallet.entity.Province;
 import org.mapstruct.Mapper;
 
-@Mapper(componentModel = "spring")
+@Mapper
 public interface ProvinceMapper {
-    ProvinceResponse mapToProvinceResponse (Province province);
+    ProvinceResponse mapToProvinceResponse(Province province);
 }
