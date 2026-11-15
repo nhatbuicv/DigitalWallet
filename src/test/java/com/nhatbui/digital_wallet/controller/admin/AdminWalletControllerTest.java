@@ -129,4 +129,38 @@ class AdminWalletControllerTest {
                         .content("{\"reason\":\"Fraudulent activity detected\"}"))
                 .andExpect(status().isUnauthorized());
     }
+
+    // ===== RBAC matrix: ADMIN / MANAGER / STAFF / USER =====
+
+    private static org.springframework.test.web.servlet.request.RequestPostProcessor asRole(String role) {
+        return org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("rbac-user").roles(role);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest(name = "{0} -> {1}")
+    @org.junit.jupiter.params.provider.CsvSource({"ADMIN,200", "MANAGER,200", "STAFF,200", "USER,403"})
+    void rbac_getWallets(String role, int expectedStatus) throws Exception {
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/admin/wallets").with(asRole(role)))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().is(expectedStatus));
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest(name = "{0} -> {1}")
+    @org.junit.jupiter.params.provider.CsvSource({"ADMIN,200", "MANAGER,200", "STAFF,200", "USER,403"})
+    void rbac_getWalletDetail(String role, int expectedStatus) throws Exception {
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/admin/wallets/" + "123e4567-e89b-12d3-a456-426614174000").with(asRole(role)))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().is(expectedStatus));
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest(name = "{0} -> {1}")
+    @org.junit.jupiter.params.provider.CsvSource({"ADMIN,200", "MANAGER,200", "STAFF,403", "USER,403"})
+    void rbac_freezeWallet(String role, int expectedStatus) throws Exception {
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch("/admin/wallets/" + "123e4567-e89b-12d3-a456-426614174000" + "/freeze").contentType(org.springframework.http.MediaType.APPLICATION_JSON).content("{\"reason\":\"test reason\"}").with(asRole(role)))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().is(expectedStatus));
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest(name = "{0} -> {1}")
+    @org.junit.jupiter.params.provider.CsvSource({"ADMIN,200", "MANAGER,200", "STAFF,403", "USER,403"})
+    void rbac_unfreezeWallet(String role, int expectedStatus) throws Exception {
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch("/admin/wallets/" + "123e4567-e89b-12d3-a456-426614174000" + "/unfreeze").contentType(org.springframework.http.MediaType.APPLICATION_JSON).content("{\"reason\":\"test reason\"}").with(asRole(role)))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().is(expectedStatus));
+    }
 }

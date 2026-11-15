@@ -24,11 +24,11 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/admin/transactions")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
 public class AdminTransactionController {
 
     private final AdminTransactionService adminTransactionService;
 
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','STAFF')")
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<TransactionAdminResponse>>> getTransactions(
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
@@ -60,6 +60,7 @@ public class AdminTransactionController {
                         .build());
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','STAFF')")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<TransactionAdminDetailResponse>> getTransactionDetail(@PathVariable UUID id) {
         return ResponseEntity

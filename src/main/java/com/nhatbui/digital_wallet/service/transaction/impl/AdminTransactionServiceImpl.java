@@ -35,7 +35,7 @@ public class AdminTransactionServiceImpl implements AdminTransactionService {
     private final TransactionMapper transactionMapper;
 
     @Override
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','STAFF')")
     public PageResponse<TransactionAdminResponse> getTransactions(Pageable pageable, TransactionSearchRequest searchRequest) {
         Specification<Transaction> spec = TransactionSpecification.buildSearchSpec(searchRequest);
         Page<Transaction> transactionPage = transactionRepository.findAll(spec, pageable);
@@ -44,7 +44,7 @@ public class AdminTransactionServiceImpl implements AdminTransactionService {
     }
 
     @Override
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','STAFF')")
     public ApiResponse<TransactionAdminDetailResponse> getTransactionDetail(UUID id) {
         Transaction transaction = transactionRepository.findDetailById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.TRANSACTION_NOT_FOUND));

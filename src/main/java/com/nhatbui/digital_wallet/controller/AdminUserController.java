@@ -21,11 +21,11 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/admin/users")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
 public class AdminUserController {
 
     private final AdminUserService adminUserService;
 
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','STAFF')")
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<UserAdminResponse>>> getUsers(
             @PageableDefault(size = 20) Pageable pageable,
@@ -54,6 +54,7 @@ public class AdminUserController {
                         .build());
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','STAFF')")
     @GetMapping("/{uid}")
     public ResponseEntity<ApiResponse<UserAdminResponse>> getUserDetail(@PathVariable UUID uid) {
         return ResponseEntity
@@ -61,6 +62,7 @@ public class AdminUserController {
                 .body(adminUserService.getUserDetail(uid));
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @PatchMapping("/{uid}/status")
     public ResponseEntity<ApiResponse<Void>> changeUserStatus(
             @PathVariable UUID uid,
@@ -70,6 +72,7 @@ public class AdminUserController {
                 .body(adminUserService.changeUserStatus(uid, status));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/{uid}/role")
     public ResponseEntity<ApiResponse<Void>> changeUserRole(
             @PathVariable UUID uid,

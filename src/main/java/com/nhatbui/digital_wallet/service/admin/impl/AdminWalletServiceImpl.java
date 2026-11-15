@@ -48,7 +48,7 @@ public class AdminWalletServiceImpl implements AdminWalletService {
     private final AuditService auditService;
 
     @Override
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','STAFF')")
     public PageResponse<WalletAdminResponse> getWallets(Pageable pageable, WalletSearchRequest searchRequest) {
         Specification<Wallet> spec = WalletSpecification.buildSearchSpec(searchRequest);
         Page<Wallet> walletPage = walletRepository.findAll(spec, pageable);
@@ -57,7 +57,7 @@ public class AdminWalletServiceImpl implements AdminWalletService {
     }
 
     @Override
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','STAFF')")
     public ApiResponse<WalletAdminResponse> getWalletDetail(UUID walletUid) {
         Wallet wallet = walletRepository.findByUid(walletUid)
                 .orElseThrow(() -> new AppException(ErrorCode.WALLET_NOT_FOUND));
@@ -71,7 +71,7 @@ public class AdminWalletServiceImpl implements AdminWalletService {
 
     @Override
     @Transactional
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ApiResponse<WalletAdminResponse> freezeWallet(UUID walletUid, WalletStatusRequest statusRequest) {
         validateStatusRequest(statusRequest);
         return changeWalletStatus(walletUid, statusRequest, WalletStatus.FROZEN, "Đóng băng ví thành công");
@@ -79,7 +79,7 @@ public class AdminWalletServiceImpl implements AdminWalletService {
 
     @Override
     @Transactional
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ApiResponse<WalletAdminResponse> unfreezeWallet(UUID walletUid, WalletStatusRequest statusRequest) {
         validateStatusRequest(statusRequest);
         return changeWalletStatus(walletUid, statusRequest, WalletStatus.ACTIVE, "Mở khóa ví thành công");

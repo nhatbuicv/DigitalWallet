@@ -35,7 +35,7 @@ public class AdminAuditServiceImpl implements AdminAuditService {
             .build();
 
     @Override
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public PageResponse<AuditLogResponse> getAuditLogs(Pageable pageable, AuditLogSearchRequest searchRequest) {
         Specification<AuditLog> spec = AuditLogSpecification.buildSearchSpec(searchRequest);
         Page<AuditLog> page = auditLogRepository.findAll(spec, pageable);

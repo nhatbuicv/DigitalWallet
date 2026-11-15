@@ -22,11 +22,11 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/admin/audit-logs")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
 public class AdminAuditController {
 
     private final AdminAuditService adminAuditService;
 
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<AuditLogResponse>>> getAuditLogs(
             @PageableDefault(size = 20) Pageable pageable,
