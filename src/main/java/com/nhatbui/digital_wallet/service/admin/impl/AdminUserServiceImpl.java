@@ -39,7 +39,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     private final AuditService auditService;
 
     @Override
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','STAFF')")
     public PageResponse<UserAdminResponse> getUsers(Pageable pageable, UserSearchRequest searchRequest) {
         Specification<User> spec = UserSpecification.buildSearchSpec(searchRequest);
         Page<User> userPage = userRepository.findAll(spec, pageable);
@@ -48,7 +48,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     }
 
     @Override
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','STAFF')")
     public ApiResponse<UserAdminResponse> getUserDetail(UUID uid) {
         User user = userRepository.findByUid(uid)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
@@ -62,7 +62,7 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     @Override
     @Transactional
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ApiResponse<Void> changeUserStatus(UUID uid, UserStatus status) {
         User user = userRepository.findByUid(uid)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));

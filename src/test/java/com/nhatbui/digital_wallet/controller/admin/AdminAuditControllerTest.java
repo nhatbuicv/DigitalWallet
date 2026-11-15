@@ -79,4 +79,17 @@ class AdminAuditControllerTest {
         mockMvc.perform(get("/admin/audit-logs"))
                 .andExpect(status().isUnauthorized());
     }
+
+    // ===== RBAC matrix: ADMIN / MANAGER / STAFF / USER =====
+
+    private static org.springframework.test.web.servlet.request.RequestPostProcessor asRole(String role) {
+        return org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("rbac-user").roles(role);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest(name = "{0} -> {1}")
+    @org.junit.jupiter.params.provider.CsvSource({"ADMIN,200", "MANAGER,200", "STAFF,403", "USER,403"})
+    void rbac_getAuditLogs(String role, int expectedStatus) throws Exception {
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/admin/audit-logs").with(asRole(role)))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().is(expectedStatus));
+    }
 }

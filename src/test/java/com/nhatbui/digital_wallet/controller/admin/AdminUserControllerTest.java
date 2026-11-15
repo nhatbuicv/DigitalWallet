@@ -226,4 +226,38 @@ class AdminUserControllerTest {
         mockMvc.perform(get("/admin/users"))
                 .andExpect(status().isUnauthorized());
     }
+
+    // ===== RBAC matrix: ADMIN / MANAGER / STAFF / USER =====
+
+    private static org.springframework.test.web.servlet.request.RequestPostProcessor asRole(String role) {
+        return org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("rbac-user").roles(role);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest(name = "{0} -> {1}")
+    @org.junit.jupiter.params.provider.CsvSource({"ADMIN,200", "MANAGER,200", "STAFF,200", "USER,403"})
+    void rbac_getUsers(String role, int expectedStatus) throws Exception {
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/admin/users").with(asRole(role)))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().is(expectedStatus));
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest(name = "{0} -> {1}")
+    @org.junit.jupiter.params.provider.CsvSource({"ADMIN,200", "MANAGER,200", "STAFF,200", "USER,403"})
+    void rbac_getUserDetail(String role, int expectedStatus) throws Exception {
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/admin/users/" + "123e4567-e89b-12d3-a456-426614174000").with(asRole(role)))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().is(expectedStatus));
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest(name = "{0} -> {1}")
+    @org.junit.jupiter.params.provider.CsvSource({"ADMIN,200", "MANAGER,200", "STAFF,403", "USER,403"})
+    void rbac_changeUserStatus(String role, int expectedStatus) throws Exception {
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch("/admin/users/" + "123e4567-e89b-12d3-a456-426614174000" + "/status").param("status", "LOCKED").with(asRole(role)))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().is(expectedStatus));
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest(name = "{0} -> {1}")
+    @org.junit.jupiter.params.provider.CsvSource({"ADMIN,200", "MANAGER,403", "STAFF,403", "USER,403"})
+    void rbac_changeUserRole(String role, int expectedStatus) throws Exception {
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch("/admin/users/" + "123e4567-e89b-12d3-a456-426614174000" + "/role").param("role", "MANAGER").with(asRole(role)))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().is(expectedStatus));
+    }
 }
