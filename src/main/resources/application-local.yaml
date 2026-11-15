@@ -20,3 +20,6 @@ logging:
     org.springdoc: INFO
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+app:
+  cors:
+    allowed-origins: http://localhost:5173

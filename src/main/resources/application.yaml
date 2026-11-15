@@ -86,3 +86,8 @@ idempotency:
   cleanup-cron: "0 0 3 * * *"
 
 
+
+app:
+  cors:
+    # Danh sach origin frontend duoc phep, ngan cach bang dau phay. Mac dinh rong = chan moi cross-origin
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:}
