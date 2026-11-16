@@ -12,6 +12,7 @@ import com.nhatbui.digital_wallet.exception.ErrorCode;
 import com.nhatbui.digital_wallet.mapper.TransactionMapper;
 import com.nhatbui.digital_wallet.repository.LedgerEntryRepository;
 import com.nhatbui.digital_wallet.repository.TransactionRepository;
+import com.nhatbui.digital_wallet.repository.projection.TransactionAdminProjection;
 import com.nhatbui.digital_wallet.repository.specification.TransactionSpecification;
 import com.nhatbui.digital_wallet.service.transaction.AdminTransactionService;
 import lombok.RequiredArgsConstructor;
@@ -38,7 +39,7 @@ public class AdminTransactionServiceImpl implements AdminTransactionService {
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER','STAFF')")
     public PageResponse<TransactionAdminResponse> getTransactions(Pageable pageable, TransactionSearchRequest searchRequest) {
         Specification<Transaction> spec = TransactionSpecification.buildSearchSpec(searchRequest);
-        Page<Transaction> transactionPage = transactionRepository.findAll(spec, pageable);
+        Page<TransactionAdminProjection> transactionPage = transactionRepository.findProjectedBySpec(spec, pageable);
 
         return PageResponse.from(transactionPage, transactionMapper::mapToAdminResponse);
     }
