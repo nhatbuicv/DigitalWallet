@@ -7,6 +7,7 @@ import com.nhatbui.digital_wallet.dto.response.wallet.TransactionDetailResponse;
 import com.nhatbui.digital_wallet.dto.response.wallet.TransactionHistoryResponse;
 import com.nhatbui.digital_wallet.entity.LedgerEntry;
 import com.nhatbui.digital_wallet.entity.Transaction;
+import com.nhatbui.digital_wallet.repository.projection.TransactionAdminProjection;
 import org.mapstruct.InheritConfiguration;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -32,6 +33,8 @@ public interface TransactionMapper {
     @Mapping(target = "toWalletNumber", source = "toWallet.walletNumber")
     @Mapping(target = "toOwnerName", source = "toWallet.user.fullName")
     TransactionAdminResponse mapToAdminResponse(Transaction transaction);
+
+    TransactionAdminResponse mapToAdminResponse(TransactionAdminProjection projection);
 
     @InheritConfiguration(name = "mapToAdminResponse")
     TransactionAdminDetailResponse mapToAdminDetailResponse(Transaction transaction);

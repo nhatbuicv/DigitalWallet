@@ -8,6 +8,7 @@ import lombok.*;
 import lombok.experimental.SuperBuilder;
 
 import java.time.Instant;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -15,17 +16,17 @@ import java.time.Instant;
 @NoArgsConstructor
 @AllArgsConstructor
 public class TransactionAdminResponse {
-    private String id;
+    private UUID id;
     private String referenceCode;
     private TransactionType type;
     private TransactionStatus status;
     private CurrencyCode currency;
     private Long amount;
     private String description;
-    private String fromWalletId;
+    private UUID fromWalletId;
     private String fromWalletNumber;
     private String fromOwnerName;
-    private String toWalletId;
+    private UUID toWalletId;
     private String toWalletNumber;
     private String toOwnerName;
 
