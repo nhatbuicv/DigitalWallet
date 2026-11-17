@@ -48,7 +48,7 @@ The application is built with **Java 21**, **Spring Boot 3.2.4**, **Spring Secur
   - Logout / logout-all (revoke refresh tokens)
   - Forgot password & reset password via email token
 - **Wallet Management**
-  - Create multiple wallets per user (checking, savings, business, etc.)
+  - Create multiple wallets per user (personal, merchant)
   - View wallet list, detail, and balance
   - Activate / freeze a wallet
   - Configurable default transaction limits (single / daily / monthly) via `wallet.limits.defaults`
@@ -109,8 +109,8 @@ digital-wallet/
 ├── mvnw / mvnw.cmd                       # Maven wrapper
 └── src/
     ├── main/
-    │   ├── java/com/nhatbui/digital_wallet/
-    │   │   ├── DigitalWalletApplication.java        # Application entry point
+    │   ├── java/com/nhatbui/wallet_ledger/
+    │   │   ├── WalletLedgerApplication.java         # Application entry point
     │   │   ├── config/                              # Spring configuration
     │   │   │   ├── SecurityConfig.java              # Security filter chain, JWT decoder
     │   │   │   ├── SecurityUtils.java               # Current-user utility
@@ -157,8 +157,8 @@ digital-wallet/
 ### Clone repository
 
 ```bash
-git clone https://github.com/nhatbuicv/Digital-Banking.git
-cd digital-wallet
+git clone https://github.com/nhatbuicv/wallet-ledger-service.git
+cd wallet-ledger-service
 ```
 
 ### Configure environment variables

@@ -1,0 +1,35 @@
+package com.nhatbui.wallet_ledger.dto.response.wallet;
+
+import com.nhatbui.wallet_ledger.enums.CurrencyCode;
+import com.nhatbui.wallet_ledger.enums.TransactionStatus;
+import com.nhatbui.wallet_ledger.enums.TransactionType;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import lombok.*;
+
+import java.time.Instant;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class TransferResponse {
+    private String transactionId;
+    private String referenceCode;
+
+    private String fromWalletId;
+    private String toWalletId;
+
+    private Long amount;
+
+    @Enumerated(EnumType.STRING)
+    private CurrencyCode currency;
+
+    private TransactionType type;
+    private TransactionStatus status;
+
+    private String description;
+    private Instant createdAt;
+    private Instant completedAt;
+}

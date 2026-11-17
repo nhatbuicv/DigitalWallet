@@ -1,0 +1,111 @@
+package com.nhatbui.wallet_ledger.exception;
+
+import com.nhatbui.wallet_ledger.enums.WalletStatus;
+import lombok.Getter;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
+
+@Getter
+public enum ErrorCode {
+    // Lỗi hệ thống và lỗi chung
+    UNCATEGORIZED_EXCEPTION(9999, "Uncategorized system error",                        HttpStatus.INTERNAL_SERVER_ERROR),
+    INTERNAL_ERROR         (9000, "Internal server error",                             HttpStatus.INTERNAL_SERVER_ERROR),
+    INVALID_KEY            (9001, "Uncategorized error key defined",                   HttpStatus.BAD_REQUEST),
+    INVALID_REQUEST_BODY   (9002, "Invalid request body or missing fields",            HttpStatus.BAD_REQUEST),
+    RATE_LIMIT_EXCEEDED    (9003, "Too many requests. Please try again later",         HttpStatus.TOO_MANY_REQUESTS),
+    RESOURCE_NOT_FOUND     (9004, "Requested resource not found",                      HttpStatus.NOT_FOUND),
+    METHOD_NOT_ALLOWED     (9005, "HTTP method not supported for this endpoint",       HttpStatus.METHOD_NOT_ALLOWED),
+    CONFLICT               (9006, "Request conflict. Please retry",                    HttpStatus.CONFLICT),
+
+    // Lỗi đăng nhập và bảo mật
+    UNAUTHENTICATED        (1001, "Unauthenticated. Please log in again",              HttpStatus.UNAUTHORIZED),
+    UNAUTHORIZED           (1002, "You do not have permission to access this resource",HttpStatus.FORBIDDEN),
+    INVALID_CREDENTIALS    (1003, "Invalid phone number or password",                  HttpStatus.BAD_REQUEST),
+    TOKEN_EXPIRED          (1004, "Session has expired. Please refresh your token",    HttpStatus.UNAUTHORIZED),
+    INVALID_TOKEN          (1005, "Invalid token provider",                            HttpStatus.UNAUTHORIZED),
+    REFRESH_TOKEN_NOT_FOUND(1006, "Refresh token not found or already revoked",        HttpStatus.UNAUTHORIZED),
+    INVALID_RESET_TOKEN    (1007, "Invalid or expired password reset token",           HttpStatus.BAD_REQUEST),
+    TOKEN_ALREADY_USED     (1008, "This reset token has already been used",            HttpStatus.BAD_REQUEST),
+    INVALID_PHONE_FORMAT   (1009, "Invalid phone number format",                       HttpStatus.BAD_REQUEST),
+    INVALID_EMAIL_FORMAT   (1010, "Invalid email format",                              HttpStatus.BAD_REQUEST),
+    CLIENT_TYPE_NOT_ALLOWED(1011, "This client type is not allowed for your account",  HttpStatus.FORBIDDEN),
+    OTP_RESEND_COOLDOWN      (1012, "Please wait 60 seconds before requesting a new OTP", HttpStatus.TOO_MANY_REQUESTS),
+    OTP_ATTEMPT_LIMIT_EXCEEDED(1013, "Too many incorrect OTP attempts. Please try again in 10 minutes", HttpStatus.TOO_MANY_REQUESTS),
+
+    // Lỗi người dùng
+    REGISTRATION_FAILED    (1020, "Registration failed. Please check your information or contact support", HttpStatus.CONFLICT),
+    PASSWORD_NOT_MATCH     (1021, "Password and confirm password do not match",        HttpStatus.BAD_REQUEST),
+    PHONE_ALREADY_EXISTS   (1022, "Phone number is already registered",                HttpStatus.BAD_REQUEST),
+    CITIZEN_ID_ALREADY_EXISTS(1023, "Citizen ID is already registered",                HttpStatus.BAD_REQUEST),
+    USER_NOT_FOUND         (1024, "User not found",                                    HttpStatus.NOT_FOUND),
+    DEVICE_NOT_REGISTERED  (1025, "Device is not registered",                          HttpStatus.NOT_FOUND),
+    SAME_AS_OLD_PASSWORD(1026,"Password same old password" ,                           HttpStatus.BAD_REQUEST),
+
+    // Lỗi trạng thái người dùng
+    USER_LOCKED            (1050, "Your account has been locked due to multiple failed login attempts", HttpStatus.LOCKED),
+    USER_INACTIVE          (1052, "Your account is inactive",                         HttpStatus.FORBIDDEN),
+    PHONE_NOT_VERIFIED     (1051, "Your phone number has not been verified via OTP",   HttpStatus.FORBIDDEN),
+
+    // Lỗi ví
+    WALLET_NOT_FOUND       (2001, "Wallet not found",                                  HttpStatus.NOT_FOUND),
+    WALLET_NOT_ACTIVE      (2002, "Wallet is not active",                              HttpStatus.BAD_REQUEST),
+    WALLET_FROZEN          (2003, "Wallet has been frozen. Please contact support",    HttpStatus.FORBIDDEN),
+    WALLET_CLOSED          (2004, "Wallet has been closed",                            HttpStatus.BAD_REQUEST),
+    WALLET_SUSPENDED       (2005, "Wallet has been suspended. Please contact support", HttpStatus.FORBIDDEN),
+    INVALID_WALLET_NUMBER  (2006, "Invalid wallet wallet number format",               HttpStatus.BAD_REQUEST),
+    WALLET_STATUS          (2007, "Wallet status is invalid" ,                         HttpStatus.BAD_REQUEST),
+    SYSTEM_WALLET_NOT_FOUND(2008, "System wallet not found" ,                          HttpStatus.NOT_FOUND),
+
+    // Lỗi chuyển trạng thái ví
+    CANNOT_FREEZE_LAST_ACTIVE_WALLET(2010, "Cannot freeze the last active wallet. You must have at least one active wallet", HttpStatus.BAD_REQUEST),
+    WALLET_ALREADY_CLOSED  (2011, "This wallet has already been closed",               HttpStatus.BAD_REQUEST),
+    WALLET_STATUS_NOT_CHANGEABLE(2012, "This wallet status cannot be changed by user", HttpStatus.FORBIDDEN),
+    WALLET_NOT_FROZEN      (2013, "Cannot activate a wallet that is not frozen",       HttpStatus.BAD_REQUEST),
+    INVALID_WALLET_STATUS  (2014, "Invalid wallet status for this operation",          HttpStatus.BAD_REQUEST),
+    INVALID_ACTION         (2015, "Invalid action specified",                          HttpStatus.BAD_REQUEST),
+
+    // Lỗi giao dịch
+    INSUFFICIENT_BALANCE   (4001, "Insufficient balance",                              HttpStatus.BAD_REQUEST),
+    TRANSFER_SAME_WALLET   (4002, "Cannot transfer to the same wallet",                HttpStatus.BAD_REQUEST),
+    TRANSACTION_NOT_FOUND  (4003, "Transaction not found",                             HttpStatus.NOT_FOUND),
+    INVALID_DEPOSIT_AMOUNT (4004,"Invalid deposit amount",                             HttpStatus.BAD_REQUEST ),
+    INVALID_WITHDRAW_AMOUNT (4005,"Invalid withdraw amount",                           HttpStatus.BAD_REQUEST ),
+    SINGLE_TRANSACTION_LIMIT_EXCEEDED(4006 , "" ,                                      HttpStatus.BAD_REQUEST ),
+    INVALID_DATE_RANGE(4007, "Invalid date range",                                     HttpStatus.BAD_REQUEST ),
+    IDEMPOTENCY_KEY_REUSED(4008, "Idempotency key was reused with a different request payload", HttpStatus.CONFLICT),
+    IDEMPOTENCY_IN_PROGRESS(4009, "A request with this idempotency key is still in progress",     HttpStatus.CONFLICT),
+    IDEMPOTENCY_KEY_REQUIRED(4010, "Idempotency key is required via Idempotency-Key header or idempotencyKey in body", HttpStatus.BAD_REQUEST),
+    TRANSACTION_STATUS_UNCERTAIN(4011, "The previous request with this idempotency key timed out and its result is uncertain. Please check your transaction history or contact support", HttpStatus.CONFLICT),
+
+    // Lỗi địa chỉ
+    PROVINCE_NOT_FOUND     (5001, "Province not found",                                HttpStatus.BAD_REQUEST),
+    ;
+
+    private final int code;
+    private final String message;
+    private final HttpStatusCode statusCode;
+
+    ErrorCode(int code, String message, HttpStatusCode statusCode) {
+        this.code = code;
+        this.message = message;
+        this.statusCode = statusCode;
+    }
+
+    public static ErrorCode fromCode(int code) {
+        for (ErrorCode errorCode : values()) {
+            if (errorCode.code == code) {
+                return errorCode;
+            }
+        }
+        return INTERNAL_ERROR;
+    }
+
+    public static ErrorCode fromWalletStatus(WalletStatus status) {
+        return switch (status) {
+            case FROZEN -> WALLET_FROZEN;
+            case CLOSED -> WALLET_CLOSED;
+            case SUSPENDED -> WALLET_SUSPENDED;
+            default -> WALLET_NOT_ACTIVE;
+        };
+    }
+}
