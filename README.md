@@ -1,5 +1,4 @@
-<<<<<<< HEAD
-# Digital Wallet
+# Wallet Ledger Service
 
 ![Java](https://img.shields.io/badge/Java-21-orange?logo=openjdk&logoColor=white)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.4-green?logo=springboot&logoColor=white)
@@ -7,7 +6,7 @@
 ![Maven](https://img.shields.io/badge/Maven-3.9%2B-red?logo=apachemaven&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-lightgrey)
 
-> A production-grade **Spring Boot backend** for a digital wallet and digital banking platform — supporting user authentication, wallet management, money transfers, deposits/withdrawals, transaction history, OTP verification, and role-based access control (RBAC).
+> A production-grade **Spring Boot backend** for an **in-house E-Wallet and Internal Ledger Service** — supporting user authentication, multi-wallet management, internal transfers, deposits/withdrawals, double-entry ledger audit, OTP verification, and role-based access control (RBAC).
 
 ---
 
@@ -31,7 +30,7 @@
 
 ## Overview
 
-**Digital Wallet** is a monolithic Spring Boot backend that provides core banking and e-wallet capabilities. It exposes a secure REST API for customer onboarding, wallet lifecycle management, and financial transactions (deposit, withdraw, transfer). The system enforces financial integrity through **double-entry bookkeeping**, **pessimistic locking**, and **idempotency keys**.
+**Wallet Ledger Service** is a modular Spring Boot backend for e-wallet and internal transaction processing. It exposes a secure REST API for customer onboarding, multi-wallet lifecycle management, and financial transactions (deposit, withdraw, internal transfer). The system enforces financial integrity through **double-entry bookkeeping**, **pessimistic locking**, and **idempotency keys**.
 
 The application is built with **Java 21**, **Spring Boot 3.2.4**, **Spring Security** (OAuth2 Resource Server + JWT), **Spring Data JPA**, **Flyway**, and **PostgreSQL**. It also integrates **Redis** for rate limiting and **JavaMail** for email-based OTP and password reset flows.
 
@@ -210,7 +209,7 @@ Alternatively, build and run the packaged JAR:
 
 ```bash
 ./mvnw clean package -DskipTests
-java -jar target/Digital_Wallet-0.0.1-SNAPSHOT.jar
+java -jar target/wallet-ledger-service-0.0.1-SNAPSHOT.jar
 ```
 
 The API will be available at `http://localhost:8080`.
@@ -508,6 +507,3 @@ All errors are centralized via `GlobalExceptionHandler` (`@RestControllerAdvice`
 This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
 
 > **Assumption:** No `LICENSE` file currently exists in the repository. The MIT license is assumed as a sensible default for an open-source project. Replace with your preferred license if needed.
-=======
-# Digital-Banking
->>>>>>> origin/main

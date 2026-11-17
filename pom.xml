@@ -11,10 +11,10 @@
     </parent>
 
     <groupId>com.nhatbui</groupId>
-    <artifactId>Digital_Wallet</artifactId>
+    <artifactId>wallet-ledger-service</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>Digital Bank Application</name>
-    <description>Banking system built with Spring Boot</description>
+    <name>Wallet Ledger Service</name>
+    <description>In-house E-Wallet and Double-Entry Ledger Service built with Spring Boot</description>
 
     <properties>
         <java.version>21</java.version>
