@@ -1,0 +1,554 @@
+package com.nhatbui.wallet_ledger.service.auth.impl;
+
+import com.nhatbui.wallet_ledger.config.SecurityUtils;
+import com.nhatbui.wallet_ledger.dto.request.user.CreateUserRequest;
+import com.nhatbui.wallet_ledger.dto.request.auth.PasswordLoginRequest;
+import com.nhatbui.wallet_ledger.dto.request.auth.QuickLoginRequest;
+import com.nhatbui.wallet_ledger.dto.request.auth.RefreshTokenRequest;
+import com.nhatbui.wallet_ledger.entity.User;
+import com.nhatbui.wallet_ledger.dto.response.common.ApiResponse;
+import com.nhatbui.wallet_ledger.dto.response.device.DeviceSessionResponse;
+import com.nhatbui.wallet_ledger.dto.response.auth.RegisterResponse;
+import com.nhatbui.wallet_ledger.dto.response.auth.TokenRefreshResponse;
+import com.nhatbui.wallet_ledger.dto.response.auth.UserLoginResponse;
+import com.nhatbui.wallet_ledger.entity.*;
+import com.nhatbui.wallet_ledger.enums.ClientType;
+import com.nhatbui.wallet_ledger.enums.WalletType;
+import com.nhatbui.wallet_ledger.enums.UserRole;
+import com.nhatbui.wallet_ledger.enums.UserStatus;
+import com.nhatbui.wallet_ledger.exception.AppException;
+import com.nhatbui.wallet_ledger.exception.ErrorCode;
+import com.nhatbui.wallet_ledger.generator.CustomerIdGenerator;
+import com.nhatbui.wallet_ledger.mapper.WalletMapper;
+import com.nhatbui.wallet_ledger.mapper.UserMapper;
+import com.nhatbui.wallet_ledger.repository.*;
+import com.nhatbui.wallet_ledger.service.wallet.WalletService;
+import com.nhatbui.wallet_ledger.service.auth.AuthService;
+import com.nhatbui.wallet_ledger.service.auth.LoginAttemptService;
+import com.nhatbui.wallet_ledger.service.auth.RateLimitService;
+import com.nhatbui.wallet_ledger.service.auth.TokenBlacklistService;
+import com.nhatbui.wallet_ledger.service.notification.EmailService;
+import com.nimbusds.jose.*;
+import com.nimbusds.jose.crypto.MACSigner;
+import com.nimbusds.jose.crypto.MACVerifier;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.SignedJWT;
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+import java.text.ParseException;
+import java.time.Instant;
+import java.util.Date;
+import java.util.List;
+import java.util.UUID;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class  AuthServiceImpl implements AuthService {
+    private static final long LOCK_DURATION_SECONDS = 1800;
+
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final ProvinceRepository provinceRepository;
+    private final CustomerIdGenerator customerIdGenerator;
+    private final WalletService walletService;
+    private final WalletRepository walletRepository;
+    private final UserMapper userMapper;
+    private final WalletMapper walletMapper;
+    private final RefreshTokenRepository refreshTokenRepository;
+    private final LoginAttemptService loginAttemptService;
+    private final DeviceSessionRepository deviceSessionRepository;
+    private final WalletService walletServiceLocal;
+    private final RateLimitService rateLimitService;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final EmailService emailService;
+    private final SecurityUtils securityUtils;
+    private final TokenBlacklistService tokenBlacklistService;
+
+    @Value("${jwt.signerKey}")
+    private String signerKey;
+
+    @Value("${jwt.access-token-duration}")
+    private long accessTokenDuration;
+
+    @Value("${jwt.refresh-token-duration}")
+    private long refreshTokenDuration;
+
+
+    // Public API
+    @Override
+    @Transactional
+    public ApiResponse<RegisterResponse> registerUserWithDefaultWallet(CreateUserRequest request) {
+        if (userRepository.existsByEmail(request.getEmail()) || userRepository.existsByPhone(request.getPhone())) {
+            throw new AppException(ErrorCode.REGISTRATION_FAILED);
+        }
+
+        Province province = provinceRepository.findByCode(request.getCityCode())
+                .orElseThrow(() -> new AppException(ErrorCode.PROVINCE_NOT_FOUND));
+
+        User user = buildNewUser(request, province);
+        User savedUser = userRepository.save(user);
+
+        Wallet defaultWallet = walletServiceLocal.createDefaultWallet(savedUser);
+        Wallet savedWallet = walletRepository.save(defaultWallet);
+
+        RegisterResponse registerResponse = RegisterResponse.builder()
+                .user(userMapper.mapToUserProfileResponse(savedUser))
+                .wallet(walletMapper.mapToWalletResponse(savedWallet))
+                .build();
+
+        return ApiResponse.<RegisterResponse>builder()
+                .message("Đăng ký thành công")
+                .success(true)
+                .data(registerResponse)
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public ApiResponse<UserLoginResponse> loginWithPassword(PasswordLoginRequest request) {
+        User user = resolveUser(request);
+
+        if (user.getRole() == UserRole.USER) {
+            checkWalletStatus(user);
+        }
+        verifyPassword(request.getPassword(), user);
+        validateClientAccess(user, request.getClientType());
+
+        refreshTokenRepository.deleteByUserUidAndDeviceId(user.getUid(), request.getDeviceId());
+        upsertDeviceSession(user, request.getDeviceId(), request.getDeviceName());
+
+        return buildLoginResponse(user, request.getDeviceId(), request.getDeviceName());
+    }
+
+    @Override
+    @Transactional
+    public ApiResponse<UserLoginResponse> quickLogin(QuickLoginRequest request) {
+        DeviceSession session = deviceSessionRepository.findByDeviceId(request.getDeviceId())
+                .orElseThrow(() -> new AppException(ErrorCode.DEVICE_NOT_REGISTERED));
+
+        User user = session.getUser();
+        checkWalletStatus(user);
+        verifyPassword(request.getPassword(), user);
+
+        refreshTokenRepository.deleteByUserUidAndDeviceId(user.getUid(), request.getDeviceId());
+
+        session.setLastLoginAt(Instant.now());
+        deviceSessionRepository.save(session);
+
+
+        return buildLoginResponse(user, request.getDeviceId(), session.getDeviceName());
+    }
+
+    @Override
+    @PreAuthorize("isAuthenticated()")
+    public ApiResponse<DeviceSessionResponse> getDeviceSession(String deviceId) {
+        User user = securityUtils.getCurrentUser();
+
+        DeviceSession session = deviceSessionRepository.findByDeviceId(deviceId)
+                .orElseThrow(() -> new AppException(ErrorCode.DEVICE_NOT_REGISTERED));
+
+
+        if(!user.getUid().equals(session.getUser().getUid())){
+            throw new AppException(ErrorCode.DEVICE_NOT_REGISTERED);
+        }
+
+        return ApiResponse.<DeviceSessionResponse>builder()
+                .success(true)
+                .data(DeviceSessionResponse.builder()
+                        .fullName(user.getFullName())
+                        .phone(user.getPhone())
+                        .quickLoginEnabled(true)
+                        .build())
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public ApiResponse<TokenRefreshResponse> refreshToken(RefreshTokenRequest refreshRequest) throws ParseException, JOSEException {
+        var signedRefreshToken = verifyToken(refreshRequest.getRefreshToken(), "refresh");
+
+        String refreshTokenId = signedRefreshToken.getJWTClaimsSet().getJWTID();
+        String refreshTokenUserId = signedRefreshToken.getJWTClaimsSet().getSubject();
+
+        RefreshToken oldRefreshToken = refreshTokenRepository.findById(UUID.fromString(refreshTokenId))
+                .orElseThrow(() -> new AppException(ErrorCode.UNAUTHENTICATED));
+
+        User tokenOwner = userRepository.findById(UUID.fromString(refreshTokenUserId))
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        refreshTokenRepository.delete(oldRefreshToken);
+
+        String accessToken = generateAccessToken(tokenOwner);
+        String newRefreshToken = generateRefreshToken(tokenOwner, oldRefreshToken.getDeviceId(), oldRefreshToken.getDeviceName());
+
+        return ApiResponse.<TokenRefreshResponse>builder()
+                .message("Token refreshed successfully")
+                .success(true)
+                .data(TokenRefreshResponse.builder()
+                        .accessToken(accessToken)
+                        .refreshToken(newRefreshToken)
+                        .tokenType("Bearer")
+                        .expiresIn(accessTokenDuration)
+                        .build())
+                .build();
+    }
+
+    @Override
+    @Transactional
+    @PreAuthorize("isAuthenticated()")
+    public ApiResponse<Void> logout(RefreshTokenRequest logoutRequest) throws ParseException, JOSEException {
+            var signedRefreshToken = verifyToken(logoutRequest.getRefreshToken(), "refresh");
+            String refreshTokenId = signedRefreshToken.getJWTClaimsSet().getJWTID();
+            refreshTokenRepository.deleteById(UUID.fromString(refreshTokenId));
+            blacklistCurrentAccessToken();
+
+        return ApiResponse.<Void>builder()
+                .message("Đăng xuất thành công")
+                .success(true)
+                .build();
+    }
+
+    @Override
+    @Transactional
+    @PreAuthorize("isAuthenticated()")
+    public ApiResponse<Void> logoutAll(RefreshTokenRequest logoutRequest) throws ParseException, JOSEException {
+            var signedRefreshToken = verifyToken(logoutRequest.getRefreshToken(), "refresh");
+            UUID currentUserId = UUID.fromString(signedRefreshToken.getJWTClaimsSet().getSubject());
+            refreshTokenRepository.deleteByUserUid(currentUserId);
+            User currentUser = userRepository.findById(currentUserId)
+                    .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+            currentUser.setTokenVersion(currentUser.getTokenVersion() + 1);
+            userRepository.save(currentUser);
+            blacklistCurrentAccessToken();
+
+        return ApiResponse.<Void>builder()
+                .message("Đăng xuất tất cả thiết bị thành công")
+                .success(true)
+                .build();
+    }
+
+    @Override
+    @Transactional
+    @PreAuthorize("isAuthenticated()")
+    public ApiResponse<Void> deleteDeviceSession(String deviceId) {
+        deviceSessionRepository.findByDeviceId(deviceId).ifPresent(session -> {
+            refreshTokenRepository.deleteByUserUidAndDeviceId(session.getUser().getUid(), deviceId);
+            deviceSessionRepository.delete(session);
+        });
+
+        return ApiResponse.<Void>builder()
+                .message("Xóa thiết bị thành công")
+                .success(true)
+                .build();
+    }
+
+    //Reset password
+    @Override
+    public ApiResponse<Void> requestPasswordReset(String email, String ipAddress) {
+        rateLimitService.checkResetLimit(ipAddress);
+
+        userRepository.findByEmail(email).ifPresent(user -> {
+            passwordResetTokenRepository.deleteByUserUid(user);
+
+            String token = UUID.randomUUID().toString();
+
+            String tokenHash = passwordEncoder.encode(token);
+
+            PasswordResetToken passwordResetToken = PasswordResetToken.builder()
+                    .tokenHash(tokenHash)
+                    .userUid(user)
+                    .expiresAt(Instant.now().plusSeconds(900))
+                    .build();
+
+            passwordResetTokenRepository.save(passwordResetToken);
+
+            emailService.sendLinkResetPassword(email,token);
+        });
+
+        return ApiResponse.<Void>builder()
+                .message("Vui lòng kiểm tra gmail để đổi mật khẩu !")
+                .success(true)
+                .build();
+    }
+
+    // Change password
+    @Override
+    @Transactional
+    public ApiResponse<Void> resetPassword(String rawToken, String newPassword) {
+        List<PasswordResetToken> unexpiredResetTokens = passwordResetTokenRepository.findByExpiresAtAfter(Instant.now());
+
+        PasswordResetToken passwordResetToken = unexpiredResetTokens.stream()
+                .filter(unexpiredToken -> passwordEncoder.matches(rawToken, unexpiredToken.getTokenHash()))
+                .findFirst()
+                .orElseThrow(() -> new AppException(ErrorCode.INVALID_RESET_TOKEN));
+
+        if (passwordResetToken.isUsed()) {
+            throw new AppException(ErrorCode.TOKEN_ALREADY_USED);
+        }
+
+        User currentUser = userRepository.findByUid(passwordResetToken.getUserUid().getUid())
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        currentUser.setPassword(passwordEncoder.encode(newPassword));
+        currentUser.setTokenVersion(currentUser.getTokenVersion() + 1);
+        userRepository.save(currentUser);
+        refreshTokenRepository.deleteByUserUid(currentUser.getUid());
+
+        passwordResetToken.setUsed(true);
+        passwordResetToken.setUsedAt(Instant.now());
+        passwordResetTokenRepository.save(passwordResetToken);
+
+        return ApiResponse.<Void>builder()
+                .message("Đổi mật khẩu thành công")
+                .success(true)
+                .build();
+    }
+
+
+
+    // Private helpers — business logic
+    private User resolveUser(PasswordLoginRequest request) {
+        String identifier = request.getIdentifier();
+        ClientType clientType = request.getClientType();
+
+        if (clientType == ClientType.MOBILE) {
+            if (!isValidPhone(identifier)) {
+                throw new AppException(ErrorCode.INVALID_PHONE_FORMAT);
+            }
+            return userRepository.findByPhone(identifier)
+                    .orElseThrow(() -> new AppException(ErrorCode.INVALID_CREDENTIALS));
+        }
+
+        // WEB_ADMIN
+        if (!isValidEmail(identifier)) {
+            throw new AppException(ErrorCode.INVALID_EMAIL_FORMAT);
+        }
+        return userRepository.findByEmail(identifier)
+                .orElseThrow(() -> new AppException(ErrorCode.INVALID_CREDENTIALS));
+    }
+
+    private void validateClientAccess(User user, ClientType clientType) {
+        UserRole role = user.getRole();
+
+        boolean isStaffRole = role == UserRole.ADMIN || role == UserRole.STAFF || role == UserRole.MANAGER;
+        boolean isCustomerRole = role == UserRole.USER;
+
+        if (isStaffRole && clientType == ClientType.MOBILE) {
+            throw new AppException(ErrorCode.CLIENT_TYPE_NOT_ALLOWED);
+        }
+        if (isCustomerRole && clientType == ClientType.WEB_ADMIN) {
+            throw new AppException(ErrorCode.CLIENT_TYPE_NOT_ALLOWED);
+        }
+    }
+
+    private boolean isValidPhone(String identifier) {
+        return identifier != null && identifier.matches("^(0[3|5|7|8|9])[0-9]{8}$");
+    }
+
+    private boolean isValidEmail(String identifier) {
+        return identifier != null && identifier.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$");
+    }
+
+    private void verifyPassword(String rawPassword, User user) {
+        if (!passwordEncoder.matches(rawPassword, user.getPassword())) {
+            loginAttemptService.recordFailedAttempt(user);
+            throw new AppException(ErrorCode.INVALID_CREDENTIALS);
+        }
+    }
+
+    private void checkWalletStatus(User user) {
+        if (!user.getWalletNonLocked()) {
+            boolean lockExpired = user.getLockTime() != null && user.getLockTime().plusSeconds(LOCK_DURATION_SECONDS).isBefore(Instant.now());
+
+            if (lockExpired) {
+                user.setWalletNonLocked(true);
+                user.setLockTime(null);
+                user.setFailedLoginAttempts(0);
+                userRepository.save(user);
+            } else {
+                throw new AppException(ErrorCode.USER_LOCKED);
+            }
+        }
+
+        switch (user.getStatus()) {
+            case PENDING -> throw new AppException(ErrorCode.PHONE_NOT_VERIFIED);
+            case LOCKED, INACTIVE -> throw new AppException(ErrorCode.USER_INACTIVE);
+            default -> {}
+        }
+    }
+
+    private ApiResponse<UserLoginResponse> buildLoginResponse(User user, String deviceId, String deviceName) {
+        String accessToken = generateAccessToken(user);
+        String refreshToken = generateRefreshToken(user, deviceId, deviceName);
+
+        user.setLastLogin(Instant.now());
+        user.setFailedLoginAttempts(0);
+        userRepository.save(user);
+
+        UserLoginResponse.UserLoginResponseBuilder builder = UserLoginResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .tokenType("Bearer")
+                .expiresIn(accessTokenDuration)
+                .customerId(user.getCustomerId())
+                .fullName(user.getFullName())
+                .phone(user.getPhone());
+
+        // Chỉ CUSTOMER (role USER) mới có wallet → chỉ query wallet cho role này
+        if (user.getRole() == UserRole.USER) {
+            Wallet defaultWallet = user.getWallets().stream()
+                    .filter(acc -> acc.getWalletType() == WalletType.PERSONAL)
+                    .findFirst()
+                    .orElseThrow(() -> new AppException(ErrorCode.WALLET_NOT_FOUND));
+
+            builder.defaultWalletNumber(defaultWallet.getWalletNumber())
+                    .defaultWalletBalance(defaultWallet.getAvailableBalance());
+        }
+
+        return ApiResponse.<UserLoginResponse>builder()
+                .message("Đăng nhập thành công")
+                .success(true)
+                .data(builder.build())
+                .build();
+    }
+
+    private void upsertDeviceSession(User user, String deviceId, String deviceName) {
+        DeviceSession session = deviceSessionRepository.findByDeviceId(deviceId)
+                .orElse(DeviceSession.builder()
+                        .deviceId(deviceId)
+                        .user(user)
+                        .deviceName(deviceName)
+                        .quickLoginEnabled(true)
+                        .build());
+
+        session.setLastLoginAt(Instant.now());
+        deviceSessionRepository.save(session);
+    }
+
+    private User buildNewUser(CreateUserRequest request, Province province) {
+        return User.builder()
+                .customerId(customerIdGenerator.generateCustomerId(UserRole.USER))
+                .fullName(request.getFullName())
+                .email(request.getEmail())
+                .phone(request.getPhone())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .province(province)
+                .dateOfBirth(request.getDateOfBirth())
+                .address(request.getAddress())
+                .status(UserStatus.PENDING)
+                .role(UserRole.USER)
+                .phoneVerified(false)
+                .failedLoginAttempts(0)
+                .walletNonLocked(true)
+                .build();
+    }
+
+
+    // Private helpers — JWT
+    private String generateAccessToken(User user) {
+        JWTClaimsSet claims = new JWTClaimsSet.Builder()
+                .subject(String.valueOf(user.getUid()))
+                .claim("customerId", user.getCustomerId())
+                .claim("role", user.getRole().toString())
+                .claim("status", user.getStatus().toString())
+                .claim("type", "access")
+                .claim("token_version", user.getTokenVersion())
+                .issuer("Digital Wallet")
+                .issueTime(new Date())
+                .expirationTime(Date.from(Instant.now().plusSeconds(accessTokenDuration)))
+                .jwtID(UUID.randomUUID().toString())
+                .build();
+
+        return buildAndSignToken(claims);
+    }
+
+    private String generateRefreshToken(User tokenOwner, String deviceId, String deviceName) {
+        UUID refreshTokenId = UUID.randomUUID();
+        Instant expiresAt = Instant.now().plusSeconds(refreshTokenDuration);
+
+        JWTClaimsSet claims = new JWTClaimsSet.Builder()
+                .subject(String.valueOf(tokenOwner.getUid()))
+                .claim("type", "refresh")
+                .claim("token_version", tokenOwner.getTokenVersion())
+                .issuer("Digital Wallet")
+                .issueTime(new Date())
+                .expirationTime(Date.from(expiresAt))
+                .jwtID(String.valueOf(refreshTokenId))
+                .build();
+
+        refreshTokenRepository.save(RefreshToken.builder()
+                .jti(refreshTokenId)
+                .user(tokenOwner)
+                .deviceId(deviceId)
+                .deviceName(deviceName)
+                .expiresAt(expiresAt)
+                .build());
+
+        return buildAndSignToken(claims);
+    }
+
+    private String buildAndSignToken(JWTClaimsSet claimsSet) {
+        JWSObject jwsObject = new JWSObject(new JWSHeader(JWSAlgorithm.HS256), new Payload(claimsSet.toJSONObject()));
+        try {
+            jwsObject.sign(new MACSigner(signerKey.getBytes()));
+            return jwsObject.serialize();
+        } catch (JOSEException e) {
+            log.error("Failed to sign JWT", e);
+            throw new AppException(ErrorCode.INTERNAL_ERROR);
+        }
+    }
+
+    private SignedJWT verifyToken(String token, String expectedType) throws JOSEException, ParseException {
+        JWSVerifier jwsVerifier = new MACVerifier(signerKey.getBytes());
+        SignedJWT signedToken = SignedJWT.parse(token);
+
+        var signatureVerified = signedToken.verify(jwsVerifier);
+
+        Date expiryTime = signedToken.getJWTClaimsSet().getExpirationTime();
+
+        if (!signatureVerified || expiryTime.before(new Date())) {
+            throw new AppException(ErrorCode.TOKEN_EXPIRED);
+        }
+
+        String tokenType = signedToken.getJWTClaimsSet().getStringClaim("type");
+        if (!expectedType.equals(tokenType)) {
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
+        }
+
+        String revokedTokenId = signedToken.getJWTClaimsSet().getJWTID();
+        if (tokenBlacklistService.isTokenBlacklisted(revokedTokenId)) {
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
+        }
+
+        if ("refresh".equals(expectedType)) {
+            assertFreshTokenVersion(signedToken);
+        }
+
+        return signedToken;
+    }
+
+    private void assertFreshTokenVersion(SignedJWT signedRefreshToken) throws ParseException {
+        Integer refreshTokenVersion = signedRefreshToken.getJWTClaimsSet().getIntegerClaim("token_version");
+        UUID refreshTokenUserId = UUID.fromString(signedRefreshToken.getJWTClaimsSet().getSubject());
+        User tokenOwner = userRepository.findById(refreshTokenUserId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        if (refreshTokenVersion == null || refreshTokenVersion.intValue() != tokenOwner.getTokenVersion()) {
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
+        }
+    }
+
+    private void blacklistCurrentAccessToken() {
+        String currentAccessTokenId = securityUtils.getCurrentTokenId();
+        Instant accessTokenExpiresAt = securityUtils.getCurrentTokenExpiresAt();
+        if (currentAccessTokenId != null && accessTokenExpiresAt != null) {
+            tokenBlacklistService.blacklistToken(currentAccessTokenId, accessTokenExpiresAt);
+        }
+    }
+}
