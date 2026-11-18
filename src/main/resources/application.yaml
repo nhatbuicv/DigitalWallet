@@ -1,6 +1,6 @@
 spring:
   application:
-    name: wallet-ledger-service
+    name: wallet-ledger-service-be
 
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:local}

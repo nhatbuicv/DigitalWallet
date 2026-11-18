@@ -11,7 +11,7 @@
     </parent>
 
     <groupId>com.nhatbui</groupId>
-    <artifactId>wallet-ledger-service</artifactId>
+    <artifactId>wallet-ledger-service-be</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>Wallet Ledger Service</name>
     <description>In-house E-Wallet and Double-Entry Ledger Service built with Spring Boot</description>
