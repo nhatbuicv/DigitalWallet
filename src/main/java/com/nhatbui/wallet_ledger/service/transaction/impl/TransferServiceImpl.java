@@ -20,6 +20,7 @@ import com.nhatbui.wallet_ledger.service.idempotency.IdempotentExecutor;
 import com.nhatbui.wallet_ledger.service.idempotency.RequestHasher;
 import com.nhatbui.wallet_ledger.service.transaction.TransferService;
 import lombok.RequiredArgsConstructor;
+import com.nhatbui.wallet_ledger.service.notification.BalanceChangeNotifier;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
@@ -39,6 +40,7 @@ public class TransferServiceImpl implements TransferService {
     private final TransactionFactory transactionFactory;
     private final IdempotentExecutor idempotentExecutor;
     private final RequestHasher requestHasher;
+    private final BalanceChangeNotifier balanceChangeNotifier;
 
     @Override
     @PreAuthorize("isAuthenticated()")
@@ -134,6 +136,11 @@ public class TransferServiceImpl implements TransferService {
         transaction.setStatus(TransactionStatus.SUCCESS);
         transaction.setCompletedAt(Instant.now());
         transactionRepository.save(transaction);
+
+        balanceChangeNotifier.notifyBalanceChanged(
+                fromWallet, EntryType.DEBIT, TransactionType.TRANSFER, request.getAmount());
+        balanceChangeNotifier.notifyBalanceChanged(
+                toWallet, EntryType.CREDIT, TransactionType.TRANSFER, request.getAmount());
 
         return ApiResponse.<TransferResponse>builder()
                 .success(true)

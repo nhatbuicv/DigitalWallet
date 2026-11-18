@@ -27,6 +27,8 @@ import com.nhatbui.wallet_ledger.service.auth.AuthService;
 import com.nhatbui.wallet_ledger.service.auth.LoginAttemptService;
 import com.nhatbui.wallet_ledger.service.auth.RateLimitService;
 import com.nhatbui.wallet_ledger.service.auth.TokenBlacklistService;
+import com.nhatbui.wallet_ledger.event.UserSessionRevokedEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import com.nhatbui.wallet_ledger.service.notification.EmailService;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.MACSigner;
@@ -70,6 +72,7 @@ public class  AuthServiceImpl implements AuthService {
     private final EmailService emailService;
     private final SecurityUtils securityUtils;
     private final TokenBlacklistService tokenBlacklistService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Value("${jwt.signerKey}")
     private String signerKey;
@@ -207,6 +210,8 @@ public class  AuthServiceImpl implements AuthService {
             var signedRefreshToken = verifyToken(logoutRequest.getRefreshToken(), "refresh");
             String refreshTokenId = signedRefreshToken.getJWTClaimsSet().getJWTID();
             refreshTokenRepository.deleteById(UUID.fromString(refreshTokenId));
+            eventPublisher.publishEvent(new UserSessionRevokedEvent(
+                    securityUtils.getCurrentUserId(), securityUtils.getCurrentTokenId()));
             blacklistCurrentAccessToken();
 
         return ApiResponse.<Void>builder()
@@ -226,6 +231,7 @@ public class  AuthServiceImpl implements AuthService {
                     .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
             currentUser.setTokenVersion(currentUser.getTokenVersion() + 1);
             userRepository.save(currentUser);
+            eventPublisher.publishEvent(new UserSessionRevokedEvent(currentUserId, null));
             blacklistCurrentAccessToken();
 
         return ApiResponse.<Void>builder()
@@ -300,6 +306,7 @@ public class  AuthServiceImpl implements AuthService {
         currentUser.setTokenVersion(currentUser.getTokenVersion() + 1);
         userRepository.save(currentUser);
         refreshTokenRepository.deleteByUserUid(currentUser.getUid());
+        eventPublisher.publishEvent(new UserSessionRevokedEvent(currentUser.getUid(), null));
 
         passwordResetToken.setUsed(true);
         passwordResetToken.setUsedAt(Instant.now());

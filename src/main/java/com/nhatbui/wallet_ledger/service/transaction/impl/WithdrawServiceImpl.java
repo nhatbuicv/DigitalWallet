@@ -24,6 +24,8 @@ import com.nhatbui.wallet_ledger.service.idempotency.RequestHasher;
 import com.nhatbui.wallet_ledger.service.transaction.WithdrawService;
 import com.nhatbui.wallet_ledger.service.wallet.SystemWalletService;
 import lombok.RequiredArgsConstructor;
+import com.nhatbui.wallet_ledger.enums.TransactionType;
+import com.nhatbui.wallet_ledger.service.notification.BalanceChangeNotifier;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
@@ -45,6 +47,7 @@ public class WithdrawServiceImpl implements WithdrawService {
     private final TransactionFactory transactionFactory;
     private final IdempotentExecutor idempotentExecutor;
     private final RequestHasher requestHasher;
+    private final BalanceChangeNotifier balanceChangeNotifier;
 
     @Override
     @PreAuthorize("isAuthenticated()")
@@ -131,6 +134,9 @@ public class WithdrawServiceImpl implements WithdrawService {
         lockedSystem.setAvailableBalance(systemBalanceAfter);
 
         walletRepository.saveAll(List.of(lockedUser, lockedSystem));
+
+        balanceChangeNotifier.notifyBalanceChanged(
+                lockedUser, EntryType.DEBIT, TransactionType.WITHDRAW, withdrawRequest.getAmount());
 
         transaction.setStatus(TransactionStatus.SUCCESS);
         transaction.setCompletedAt(Instant.now());

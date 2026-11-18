@@ -71,6 +71,7 @@ class WithdrawServiceImplTest {
     @Mock private LedgerEntryRepository ledgerEntryRepository;
     @Mock private TransactionTemplate transactionTemplate;
     @Mock private IdempotencyService idempotencyService;
+    @Mock private com.nhatbui.wallet_ledger.service.notification.BalanceChangeNotifier balanceChangeNotifier;
 
     private final RequestHasher requestHasher = new RequestHasher();
 
@@ -92,7 +93,8 @@ class WithdrawServiceImplTest {
                 ledgerEntryRepository,
                 new TransactionFactory(new ReferenceCodeGenerator()),
                 idempotentExecutor,
-                requestHasher);
+                requestHasher,
+                balanceChangeNotifier);
 
         userWallet = wallet("999999999999", "User Wallet", USER_BALANCE);
         systemWallet = wallet("555555555555", "System Wallet", SYSTEM_BALANCE);

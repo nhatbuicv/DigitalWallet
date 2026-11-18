@@ -31,6 +31,7 @@ public class UserServiceImpl implements UserService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final TokenBlacklistService tokenBlacklistService;
     private final PasswordEncoder passwordEncoder;
+    private final org.springframework.context.ApplicationEventPublisher eventPublisher;
 
     @Override
     @PreAuthorize("isAuthenticated()")
@@ -96,6 +97,7 @@ public class UserServiceImpl implements UserService {
         currentUser.setTokenVersion(currentUser.getTokenVersion() + 1);
         userRepository.save(currentUser);
         refreshTokenRepository.deleteByUserUid(currentUser.getUid());
+        eventPublisher.publishEvent(new com.nhatbui.wallet_ledger.event.UserSessionRevokedEvent(currentUser.getUid(), null));
         blacklistCurrentAccessToken();
 
         return ApiResponse.<Void>builder()
