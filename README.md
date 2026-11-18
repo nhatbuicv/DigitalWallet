@@ -209,7 +209,7 @@ Alternatively, build and run the packaged JAR:
 
 ```bash
 ./mvnw clean package -DskipTests
-java -jar target/wallet-ledger-service-0.0.1-SNAPSHOT.jar
+java -jar target/wallet-ledger-service-be-0.0.1-SNAPSHOT.jar
 ```
 
 The API will be available at `http://localhost:8080`.
