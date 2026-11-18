@@ -90,7 +90,8 @@ class WalletStatusErrorCodeTest {
                 transferMapper,
                 new TransactionFactory(new ReferenceCodeGenerator()),
                 idempotentExecutor,
-                requestHasher);
+                requestHasher,
+                org.mockito.Mockito.mock(com.nhatbui.wallet_ledger.service.notification.BalanceChangeNotifier.class));
 
         depositService = new DepositServiceImpl(
                 transactionRepository,
@@ -101,7 +102,8 @@ class WalletStatusErrorCodeTest {
                 ledgerEntryRepository,
                 new TransactionFactory(new ReferenceCodeGenerator()),
                 idempotentExecutor,
-                requestHasher);
+                requestHasher,
+                org.mockito.Mockito.mock(com.nhatbui.wallet_ledger.service.notification.BalanceChangeNotifier.class));
 
         withdrawService = new WithdrawServiceImpl(
                 transactionRepository,
@@ -112,7 +114,8 @@ class WalletStatusErrorCodeTest {
                 ledgerEntryRepository,
                 new TransactionFactory(new ReferenceCodeGenerator()),
                 idempotentExecutor,
-                requestHasher);
+                requestHasher,
+                org.mockito.Mockito.mock(com.nhatbui.wallet_ledger.service.notification.BalanceChangeNotifier.class));
 
         fromWallet = wallet("999999999999", "From Wallet", 100_000L);
         toWallet = wallet("888888888888", "To Wallet", 100_000L);

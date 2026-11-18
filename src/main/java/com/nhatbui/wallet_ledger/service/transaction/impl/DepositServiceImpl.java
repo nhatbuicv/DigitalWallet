@@ -24,6 +24,8 @@ import com.nhatbui.wallet_ledger.service.idempotency.RequestHasher;
 import com.nhatbui.wallet_ledger.service.transaction.DepositService;
 import com.nhatbui.wallet_ledger.service.wallet.SystemWalletService;
 import lombok.RequiredArgsConstructor;
+import com.nhatbui.wallet_ledger.enums.TransactionType;
+import com.nhatbui.wallet_ledger.service.notification.BalanceChangeNotifier;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
@@ -46,6 +48,7 @@ public class DepositServiceImpl implements DepositService {
     private final TransactionFactory transactionFactory;
     private final IdempotentExecutor idempotentExecutor;
     private final RequestHasher requestHasher;
+    private final BalanceChangeNotifier balanceChangeNotifier;
 
     @Override
     @PreAuthorize("isAuthenticated()")
@@ -126,6 +129,9 @@ public class DepositServiceImpl implements DepositService {
         lockedUser.setAvailableBalance(userBalanceAfter);
 
         walletRepository.saveAll(List.of(lockedSystem, lockedUser));
+
+        balanceChangeNotifier.notifyBalanceChanged(
+                lockedUser, EntryType.CREDIT, TransactionType.DEPOSIT, depositRequest.getAmount());
 
         transaction.setStatus(TransactionStatus.SUCCESS);
         transaction.setCompletedAt(Instant.now());
