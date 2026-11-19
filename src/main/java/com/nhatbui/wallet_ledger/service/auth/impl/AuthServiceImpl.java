@@ -118,9 +118,7 @@ public class  AuthServiceImpl implements AuthService {
     public ApiResponse<UserLoginResponse> loginWithPassword(PasswordLoginRequest request) {
         User user = resolveUser(request);
 
-        if (user.getRole() == UserRole.USER) {
-            checkWalletStatus(user);
-        }
+        checkAccountStatus(user);
         verifyPassword(request.getPassword(), user);
         validateClientAccess(user, request.getClientType());
 
@@ -137,7 +135,7 @@ public class  AuthServiceImpl implements AuthService {
                 .orElseThrow(() -> new AppException(ErrorCode.DEVICE_NOT_REGISTERED));
 
         User user = session.getUser();
-        checkWalletStatus(user);
+        checkAccountStatus(user);
         verifyPassword(request.getPassword(), user);
 
         refreshTokenRepository.deleteByUserUidAndDeviceId(user.getUid(), request.getDeviceId());
@@ -370,8 +368,8 @@ public class  AuthServiceImpl implements AuthService {
         }
     }
 
-    private void checkWalletStatus(User user) {
-        if (!user.getWalletNonLocked()) {
+    private void checkAccountStatus(User user) {
+        if (Boolean.FALSE.equals(user.getWalletNonLocked())) {
             boolean lockExpired = user.getLockTime() != null && user.getLockTime().plusSeconds(LOCK_DURATION_SECONDS).isBefore(Instant.now());
 
             if (lockExpired) {
@@ -385,8 +383,12 @@ public class  AuthServiceImpl implements AuthService {
         }
 
         switch (user.getStatus()) {
-            case PENDING -> throw new AppException(ErrorCode.PHONE_NOT_VERIFIED);
-            case LOCKED, INACTIVE -> throw new AppException(ErrorCode.USER_INACTIVE);
+            case PENDING -> {
+                if (user.getRole() == UserRole.USER) {
+                    throw new AppException(ErrorCode.PHONE_NOT_VERIFIED);
+                }
+            }
+            case LOCKED, INACTIVE, SUSPENDED -> throw new AppException(ErrorCode.USER_INACTIVE);
             default -> {}
         }
     }
@@ -404,9 +406,12 @@ public class  AuthServiceImpl implements AuthService {
                 .refreshToken(refreshToken)
                 .tokenType("Bearer")
                 .expiresIn(accessTokenDuration)
+                .uid(user.getUid())
                 .customerId(user.getCustomerId())
                 .fullName(user.getFullName())
-                .phone(user.getPhone());
+                .email(user.getEmail())
+                .phone(user.getPhone())
+                .role(user.getRole());
 
         // Chỉ CUSTOMER (role USER) mới có wallet → chỉ query wallet cho role này
         if (user.getRole() == UserRole.USER) {
